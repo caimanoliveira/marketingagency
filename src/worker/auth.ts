@@ -62,7 +62,7 @@ export async function signToken(payload: TokenPayload, secret: string): Promise<
 export async function verifyToken(token: string, secret: string): Promise<TokenPayload | null> {
   const ok = await jwt.verify(token, secret);
   if (!ok) return null;
-  const { payload } = jwt.decode(token);
+  const { payload } = jwt.decode<TokenPayload>(token);
   if (!payload || typeof payload.userId !== "string") return null;
   return { userId: payload.userId, exp: payload.exp };
 }
