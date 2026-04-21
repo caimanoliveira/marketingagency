@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { health } from "./routes/health";
 import { auth } from "./routes/auth";
 import { media } from "./routes/media";
+import { posts } from "./routes/posts";
 
 export interface Env {
   DB: D1Database;
@@ -21,6 +22,7 @@ const app = new Hono<{ Bindings: Env }>();
 app.route("/api/health", health);
 app.route("/api/auth", auth);
 app.route("/api/media", media);
+app.route("/api/posts", posts);
 
 app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));
 
