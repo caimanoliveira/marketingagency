@@ -30,3 +30,21 @@ export const ALLOWED_MIME_TYPES = new Set([
   "video/mp4",
   "video/quicktime",
 ]);
+
+export const ToneSchema = z.enum(["formal", "casual", "playful", "direct"]);
+
+export const GenerateVariationsSchema = z.object({
+  brief: z.string().min(3).max(2000),
+  network: NetworkSchema.optional(),
+  tone: ToneSchema.optional(),
+});
+
+export const RewriteForNetworkSchema = z.object({
+  body: z.string().min(1).max(5000),
+  network: NetworkSchema,
+});
+
+export const AdjustToneSchema = z.object({
+  body: z.string().min(1).max(5000),
+  tone: ToneSchema,
+});

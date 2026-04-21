@@ -74,3 +74,24 @@ export interface PresignedUploadResponse {
   r2Key: string;
   expiresIn: number;
 }
+
+export type Tone = "formal" | "casual" | "playful" | "direct";
+
+export interface GenerateVariationsRequest {
+  brief: string;
+  network?: Network;
+  tone?: Tone;
+}
+export interface GenerateVariationsResponse { variations: string[]; }
+
+export interface RewriteForNetworkRequest {
+  body: string;
+  network: Network;
+}
+export interface RewriteForNetworkResponse { rewritten: string; }
+
+export interface AdjustToneRequest {
+  body: string;
+  tone: Tone;
+}
+export interface AdjustToneResponse { adjusted: string; }

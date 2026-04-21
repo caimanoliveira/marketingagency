@@ -15,6 +15,7 @@ export interface Env {
   R2_PUBLIC_HOST: string;
   R2_ACCESS_KEY_ID: string;
   R2_SECRET_ACCESS_KEY: string;
+  ANTHROPIC_API_KEY: string;
 }
 
 const app = new Hono<{ Bindings: Env }>();
