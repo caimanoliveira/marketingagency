@@ -1,14 +1,76 @@
-export interface LoginRequest {
-  email: string;
-  password: string;
+export interface LoginRequest { email: string; password: string; }
+export interface MeResponse { userId: string; email: string; }
+export interface HealthResponse { ok: true; app: string; }
+
+export type Network = "instagram" | "tiktok" | "linkedin";
+export type PostStatus = "draft" | "scheduled" | "published" | "failed";
+export type TargetStatus = "pending" | "scheduled" | "publishing" | "published" | "failed";
+
+export interface Media {
+  id: string;
+  r2Key: string;
+  mimeType: string;
+  sizeBytes: number;
+  originalName: string;
+  width: number | null;
+  height: number | null;
+  durationMs: number | null;
+  createdAt: number;
+  url: string;
 }
 
-export interface MeResponse {
-  userId: string;
-  email: string;
+export interface PostTarget {
+  id: string;
+  postId: string;
+  network: Network;
+  bodyOverride: string | null;
+  scheduledAt: number | null;
+  publishedAt: number | null;
+  externalId: string | null;
+  status: TargetStatus;
 }
 
-export interface HealthResponse {
-  ok: true;
-  app: string;
+export interface Post {
+  id: string;
+  body: string;
+  mediaId: string | null;
+  media: Media | null;
+  status: PostStatus;
+  createdAt: number;
+  updatedAt: number;
+  targets: PostTarget[];
+}
+
+export interface PostListItem {
+  id: string;
+  body: string;
+  status: PostStatus;
+  mediaId: string | null;
+  mediaThumb: string | null;
+  networks: Network[];
+  updatedAt: number;
+}
+
+export interface CreatePostRequest {
+  body?: string;
+  mediaId?: string | null;
+  networks?: Network[];
+}
+export interface UpdatePostRequest {
+  body?: string;
+  mediaId?: string | null;
+}
+export interface UpdateTargetRequest {
+  bodyOverride?: string | null;
+}
+export interface PresignedUploadRequest {
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+}
+export interface PresignedUploadResponse {
+  mediaId: string;
+  uploadUrl: string;
+  r2Key: string;
+  expiresIn: number;
 }

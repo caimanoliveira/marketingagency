@@ -1,0 +1,32 @@
+import { z } from "zod";
+
+export const NetworkSchema = z.enum(["instagram", "tiktok", "linkedin"]);
+
+export const CreatePostSchema = z.object({
+  body: z.string().max(5000).default(""),
+  mediaId: z.string().nullable().optional(),
+  networks: z.array(NetworkSchema).optional().default([]),
+});
+
+export const UpdatePostSchema = z.object({
+  body: z.string().max(5000).optional(),
+  mediaId: z.string().nullable().optional(),
+});
+
+export const UpdateTargetSchema = z.object({
+  bodyOverride: z.string().max(5000).nullable().optional(),
+});
+
+export const PresignedUploadSchema = z.object({
+  filename: z.string().min(1).max(256),
+  mimeType: z.string().min(1).max(128),
+  sizeBytes: z.number().int().positive().max(500 * 1024 * 1024),
+});
+
+export const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "video/mp4",
+  "video/quicktime",
+]);
