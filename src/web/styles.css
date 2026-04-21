@@ -9,3 +9,56 @@ button:disabled { opacity: 0.5; cursor: wait; }
 .err { color: #ff6b6b; font-size: 13px; margin-top: 8px; }
 .home { padding: 32px; }
 .home button { width: auto; }
+
+.app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+.sidebar { background: #0d0d12; border-right: 1px solid #1f1f28; padding: 20px; display: flex; flex-direction: column; }
+.sidebar .brand { font-weight: 600; margin-bottom: 24px; }
+.sidebar nav { display: flex; flex-direction: column; gap: 4px; }
+.sidebar nav a { color: #bbb; text-decoration: none; padding: 8px 12px; border-radius: 8px; font-size: 14px; }
+.sidebar nav a.active, .sidebar nav a:hover { background: #1a1a24; color: #fff; }
+.sidebar-foot { margin-top: auto; padding-top: 16px; border-top: 1px solid #1f1f28; }
+.sidebar-foot .user-email { font-size: 12px; color: #888; display: block; margin-bottom: 8px; }
+.sidebar-foot button { background: transparent; border: 1px solid #333; color: #ccc; width: 100%; padding: 6px; }
+.content { padding: 32px; overflow: auto; }
+.content h1 { margin-top: 0; }
+
+.btn-primary { background: #6e56cf; color: white; border: 0; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+.btn-secondary { background: transparent; color: #ccc; border: 1px solid #333; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+.btn-danger { background: #9b1c2b; color: white; border: 0; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+
+.editor-grid { display: grid; grid-template-columns: 1fr 420px; gap: 24px; }
+.editor-pane { background: #111118; border: 1px solid #1f1f28; border-radius: 12px; padding: 16px; }
+.editor-pane textarea { width: 100%; min-height: 260px; background: #0d0d12; color: #eee; border: 1px solid #2a2a36; border-radius: 8px; padding: 12px; font-family: inherit; font-size: 14px; resize: vertical; box-sizing: border-box; }
+
+.posts-table { width: 100%; border-collapse: collapse; }
+.posts-table th, .posts-table td { padding: 10px 12px; border-bottom: 1px solid #1f1f28; text-align: left; vertical-align: middle; font-size: 14px; }
+.posts-table .thumb { width: 56px; height: 56px; background: #1a1a24; border-radius: 6px; object-fit: cover; }
+.status-draft { color: #9aa0a6; }
+.status-scheduled { color: #e0b84f; }
+.status-published { color: #7ecf8a; }
+.status-failed { color: #ff6b6b; }
+
+.media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.media-tile { background: #111118; border: 1px solid #1f1f28; border-radius: 8px; overflow: hidden; cursor: pointer; position: relative; }
+.media-tile img, .media-tile video { width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block; }
+.media-tile .meta { padding: 8px; font-size: 11px; color: #888; display: flex; justify-content: space-between; }
+.media-tile.selected { outline: 2px solid #6e56cf; }
+
+.network-preview { background: #0d0d12; border: 1px solid #1f1f28; border-radius: 10px; padding: 12px; }
+.network-preview header { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; font-size: 12px; color: #aaa; }
+.network-preview .tag { padding: 2px 6px; border-radius: 4px; font-size: 10px; color: white; }
+.network-preview .preview-media { width: 100%; max-height: 320px; object-fit: contain; background: #000; border-radius: 6px; }
+.network-preview .preview-body { margin-top: 8px; font-size: 13px; line-height: 1.4; white-space: pre-wrap; }
+
+.char-counter { font-size: 11px; color: #888; margin-top: 4px; text-align: right; }
+.char-counter.over { color: #ff6b6b; }
+
+.net-selector { display: flex; gap: 8px; flex-wrap: wrap; }
+.net-selector label { display: flex; gap: 6px; align-items: center; padding: 4px 10px; border: 1px solid #333; border-radius: 20px; cursor: pointer; font-size: 13px; margin: 0; }
+.net-selector label input { margin: 0; }
+.net-selector label.checked { background: #1a1a24; border-color: #6e56cf; color: #fff; }
+
+.uploader { border: 2px dashed #333; border-radius: 10px; padding: 20px; text-align: center; cursor: pointer; transition: border-color 0.1s; }
+.uploader.drag { border-color: #6e56cf; background: #14121a; }
+.uploader .progress { height: 4px; background: #2a2a36; border-radius: 2px; overflow: hidden; margin-top: 8px; }
+.uploader .progress-bar { height: 100%; background: #6e56cf; transition: width 0.1s; }

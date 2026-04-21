@@ -22,6 +22,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@tanstack/react-query": "^5.99.2",
     "@tsndr/cloudflare-worker-jwt": "^3.2.1",
     "aws4fetch": "^1.0.20",
     "hono": "^4.12.14",
