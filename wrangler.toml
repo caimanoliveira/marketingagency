@@ -1,0 +1,17 @@
+name = "social-command"
+main = "src/worker/index.ts"
+compatibility_date = "2026-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "./dist/client"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "social_command"
+database_id = "0f677f81-cb53-466a-8978-123591432185"
+
+[vars]
+APP_NAME = "social-command"
