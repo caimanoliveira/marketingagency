@@ -13,5 +13,12 @@ binding = "DB"
 database_name = "social_command"
 database_id = "0f677f81-cb53-466a-8978-123591432185"
 
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "social-command-media"
+
 [vars]
 APP_NAME = "social-command"
+R2_ACCOUNT_ID = "ca5c50fef93a22d0e7a3e131ba42c589"
+R2_BUCKET = "social-command-media"
+R2_PUBLIC_HOST = ""
