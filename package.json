@@ -23,6 +23,7 @@
   "description": "",
   "dependencies": {
     "@tsndr/cloudflare-worker-jwt": "^3.2.1",
+    "aws4fetch": "^1.0.20",
     "hono": "^4.12.14",
     "zod": "^4.3.6"
   },
