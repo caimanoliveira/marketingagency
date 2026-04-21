@@ -13,6 +13,7 @@ export default defineConfig({
           R2_PUBLIC_HOST: "",
           R2_ACCESS_KEY_ID: "AKIATEST",
           R2_SECRET_ACCESS_KEY: "testsecret",
+          ANTHROPIC_API_KEY: "test-anthropic-key",
         },
         r2Buckets: { MEDIA: "test-media-bucket" },
       },

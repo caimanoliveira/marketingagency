@@ -3,6 +3,7 @@ import { health } from "./routes/health";
 import { auth } from "./routes/auth";
 import { media } from "./routes/media";
 import { posts } from "./routes/posts";
+import { ai } from "./routes/ai";
 
 export interface Env {
   DB: D1Database;
@@ -24,6 +25,7 @@ app.route("/api/health", health);
 app.route("/api/auth", auth);
 app.route("/api/media", media);
 app.route("/api/posts", posts);
+app.route("/api/ai", ai);
 
 app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));
 
