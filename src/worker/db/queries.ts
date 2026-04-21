@@ -190,3 +190,29 @@ export async function updateTarget(
     .run();
   return res.meta.changes > 0;
 }
+
+export async function logAiGeneration(
+  db: D1Database,
+  params: {
+    id: string;
+    userId: string;
+    kind: string;
+    input: unknown;
+    output: unknown;
+    inputTokens: number;
+    outputTokens: number;
+    cachedTokens: number;
+    model: string;
+    durationMs: number;
+  }
+): Promise<void> {
+  await db
+    .prepare("INSERT INTO ai_generations (id, user_id, kind, input_json, output_json, input_tokens, output_tokens, cached_tokens, model, duration_ms, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    .bind(
+      params.id, params.userId, params.kind,
+      JSON.stringify(params.input), JSON.stringify(params.output),
+      params.inputTokens, params.outputTokens, params.cachedTokens,
+      params.model, params.durationMs, Date.now()
+    )
+    .run();
+}
