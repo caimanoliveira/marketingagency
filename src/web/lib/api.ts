@@ -10,6 +10,12 @@ import type {
   Media,
   PresignedUploadRequest,
   PresignedUploadResponse,
+  GenerateVariationsRequest,
+  GenerateVariationsResponse,
+  RewriteForNetworkRequest,
+  RewriteForNetworkResponse,
+  AdjustToneRequest,
+  AdjustToneResponse,
 } from "../../shared/types";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -50,4 +56,11 @@ export const api = {
   deleteMedia: (id: string) => json<{ ok: true }>(`/api/media/${id}`, "DELETE"),
   presignUpload: (body: PresignedUploadRequest) =>
     json<PresignedUploadResponse>("/api/media/presigned-upload", "POST", body),
+
+  aiVariations: (body: GenerateVariationsRequest) =>
+    json<GenerateVariationsResponse>("/api/ai/variations", "POST", body),
+  aiRewrite: (body: RewriteForNetworkRequest) =>
+    json<RewriteForNetworkResponse>("/api/ai/rewrite", "POST", body),
+  aiTone: (body: AdjustToneRequest) =>
+    json<AdjustToneResponse>("/api/ai/tone", "POST", body),
 };

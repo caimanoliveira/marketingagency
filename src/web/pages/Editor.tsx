@@ -6,6 +6,7 @@ import { NetworkSelector } from "../components/NetworkSelector";
 import { NetworkPreview } from "../components/NetworkPreview";
 import { MediaUploader } from "../components/MediaUploader";
 import { MediaPicker } from "../components/MediaPicker";
+import { AIAssistant } from "../components/AIAssistant";
 import type { Network, Post } from "../../shared/types";
 
 export function Editor() {
@@ -98,6 +99,7 @@ export function Editor() {
 
       <div className="editor-grid">
         <div className="editor-pane">
+          <AIAssistant body={body} onApply={(text) => setBody(text)} />
           <label style={{ fontSize: 14, color: "#aaa", marginBottom: 8, display: "block" }}>Copy base</label>
           <textarea
             value={body}
