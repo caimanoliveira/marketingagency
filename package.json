@@ -1,0 +1,43 @@
+{
+  "name": "marketing-agency",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "vite build",
+    "deploy": "npm run build && wrangler deploy",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -b",
+    "db:migrate:local": "wrangler d1 migrations apply social_command --local",
+    "db:migrate:remote": "wrangler d1 migrations apply social_command --remote",
+    "create-user": "tsx scripts/create-user.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@tsndr/cloudflare-worker-jwt": "^3.2.1",
+    "hono": "^4.12.14"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.14.8",
+    "@cloudflare/workers-types": "^4.20260421.1",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-router-dom": "^7.14.1",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.9",
+    "vitest": "^4.1.5",
+    "wrangler": "^4.84.0"
+  }
+}
