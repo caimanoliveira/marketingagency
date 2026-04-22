@@ -23,6 +23,9 @@ export interface Env {
   LINKEDIN_CLIENT_ID: string;
   LINKEDIN_CLIENT_SECRET: string;
   LINKEDIN_REDIRECT_URL: string;
+  META_APP_ID: string;
+  META_APP_SECRET: string;
+  META_REDIRECT_URL: string;
   APP_ORIGIN: string;
   PUBLISH_QUEUE: Queue<PublishJob>;
 }

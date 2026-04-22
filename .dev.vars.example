@@ -4,3 +4,5 @@ R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
 ANTHROPIC_API_KEY=sk-ant-placeholder
 LINKEDIN_CLIENT_ID=your-linkedin-client-id
 LINKEDIN_CLIENT_SECRET=your-linkedin-client-secret
+META_APP_ID=your-meta-app-id
+META_APP_SECRET=your-meta-app-secret

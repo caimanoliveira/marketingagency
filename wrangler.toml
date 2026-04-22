@@ -23,6 +23,7 @@ R2_ACCOUNT_ID = "ca5c50fef93a22d0e7a3e131ba42c589"
 R2_BUCKET = "social-command-media"
 R2_PUBLIC_HOST = ""
 LINKEDIN_REDIRECT_URL = "https://social-command.caimanvinicius.workers.dev/api/connections/linkedin/callback"
+META_REDIRECT_URL = "https://social-command.caimanvinicius.workers.dev/api/connections/instagram/callback"
 APP_ORIGIN = "https://social-command.caimanvinicius.workers.dev"
 
 [triggers]

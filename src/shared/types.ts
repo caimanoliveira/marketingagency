@@ -4,7 +4,7 @@ export interface HealthResponse { ok: true; app: string; }
 
 export type Network = "instagram" | "tiktok" | "linkedin";
 export type PostStatus = "draft" | "scheduled" | "published" | "failed";
-export type TargetStatus = "pending" | "scheduled" | "publishing" | "published" | "failed";
+export type TargetStatus = "pending" | "scheduled" | "publishing" | "published" | "failed" | "ready_to_post";
 
 export interface Media {
   id: string;
@@ -132,4 +132,19 @@ export interface PublishJob {
   targetId: string;
   network: Network;
   attempt: number;
+}
+
+export interface InstagramAccount {
+  id: string;
+  igUserId: string;
+  igUsername: string;
+  fbPageId: string;
+  fbPageName: string;
+  profilePictureUrl: string | null;
+}
+
+export interface InstagramConnectionStatus {
+  connected: boolean;
+  member?: { fbUserId: string; fbUserName: string; expiresAt: number; scopes: string[] };
+  accounts?: InstagramAccount[];
 }
