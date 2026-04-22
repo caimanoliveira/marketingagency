@@ -1,4 +1,5 @@
 const GRAPH = "https://graph.facebook.com/v20.0";
+const GRAPH_V20 = "https://graph.facebook.com/v20.0";
 const OAUTH_BASE = "https://www.facebook.com/v20.0/dialog/oauth";
 const OAUTH_TOKEN = `${GRAPH}/oauth/access_token`;
 
@@ -113,4 +114,62 @@ export async function resolveInstagramAccounts(
     }
   }
   return out;
+}
+
+export interface PublishInstagramArgs {
+  pageAccessToken: string;
+  igUserId: string;
+  caption: string;
+  mediaUrl: string;
+  mediaType: "image" | "video";
+}
+
+export async function publishInstagram(args: PublishInstagramArgs): Promise<{ igMediaId: string }> {
+  // Step 1: create container
+  const createUrl = new URL(`${GRAPH_V20}/${args.igUserId}/media`);
+  createUrl.searchParams.set("access_token", args.pageAccessToken);
+  createUrl.searchParams.set("caption", args.caption);
+  if (args.mediaType === "image") {
+    createUrl.searchParams.set("image_url", args.mediaUrl);
+  } else {
+    createUrl.searchParams.set("media_type", "REELS");
+    createUrl.searchParams.set("video_url", args.mediaUrl);
+  }
+
+  const createRes = await fetch(createUrl.toString(), { method: "POST" });
+  if (!createRes.ok) {
+    const t = await createRes.text().catch(() => "");
+    throw new Error(`ig_container_${createRes.status}_${t.slice(0, 200)}`);
+  }
+  const { id: containerId } = (await createRes.json()) as { id: string };
+
+  // Step 2: poll status for videos (images are usually instant)
+  if (args.mediaType === "video") {
+    const deadline = Date.now() + 30_000;
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 3_000));
+      const statusUrl = new URL(`${GRAPH_V20}/${containerId}`);
+      statusUrl.searchParams.set("fields", "status_code");
+      statusUrl.searchParams.set("access_token", args.pageAccessToken);
+      const statusRes = await fetch(statusUrl.toString());
+      if (!statusRes.ok) continue;
+      const { status_code } = (await statusRes.json()) as { status_code?: string };
+      if (status_code === "FINISHED") break;
+      if (status_code === "ERROR" || status_code === "EXPIRED") {
+        throw new Error(`ig_container_status_${status_code}`);
+      }
+    }
+  }
+
+  // Step 3: publish
+  const publishUrl = new URL(`${GRAPH_V20}/${args.igUserId}/media_publish`);
+  publishUrl.searchParams.set("access_token", args.pageAccessToken);
+  publishUrl.searchParams.set("creation_id", containerId);
+  const pubRes = await fetch(publishUrl.toString(), { method: "POST" });
+  if (!pubRes.ok) {
+    const t = await pubRes.text().catch(() => "");
+    throw new Error(`ig_publish_${pubRes.status}_${t.slice(0, 200)}`);
+  }
+  const { id: igMediaId } = (await pubRes.json()) as { id: string };
+  return { igMediaId };
 }

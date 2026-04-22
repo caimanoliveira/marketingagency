@@ -2,9 +2,12 @@ import type { Env } from "./index";
 import {
   getPostById, getMediaById, listTargetsForPost,
   getLinkedInConnection, upsertLinkedInConnection,
+  getMetaConnection, getInstagramAccountByUserId,
 } from "./db/queries";
 import type { Network } from "../shared/types";
 import { publishUgcPost, uploadImageToLinkedIn, refreshAccessToken } from "./integrations/linkedin";
+import { publishInstagram } from "./integrations/meta";
+import { presignGet } from "./r2/presigned";
 
 export interface PublishResult {
   externalId: string;
@@ -44,33 +47,78 @@ export async function publishOnce(
   if (!target) throw new Error("target_not_found");
   const network = target.network as Network;
 
-  if (network !== "linkedin") throw new Error(`network_not_supported_yet_${network}`);
+  let externalId: string;
 
-  const { accessToken, authorUrn } = await ensureFreshLinkedInToken(env, userId);
-  const finalAuthor = target.target_ref ?? authorUrn;
-  const text = target.body_override ?? post.body;
+  if (network === "linkedin") {
+    const { accessToken, authorUrn } = await ensureFreshLinkedInToken(env, userId);
+    const finalAuthor = target.target_ref ?? authorUrn;
+    const text = target.body_override ?? post.body;
 
-  let imageAsset: string | undefined;
-  if (post.media_id) {
-    const media = await getMediaById(env.DB, userId, post.media_id);
-    if (media && media.mime_type.startsWith("image/")) {
-      const obj = await env.MEDIA.get(media.r2_key);
-      if (obj) {
-        const bytes = await obj.arrayBuffer();
-        imageAsset = await uploadImageToLinkedIn(accessToken, finalAuthor, bytes, media.mime_type);
+    let imageAsset: string | undefined;
+    if (post.media_id) {
+      const media = await getMediaById(env.DB, userId, post.media_id);
+      if (media && media.mime_type.startsWith("image/")) {
+        const obj = await env.MEDIA.get(media.r2_key);
+        if (obj) {
+          const bytes = await obj.arrayBuffer();
+          imageAsset = await uploadImageToLinkedIn(accessToken, finalAuthor, bytes, media.mime_type);
+        }
       }
     }
+
+    const result = await publishUgcPost({ accessToken, authorUrn: finalAuthor, text, imageAsset });
+    externalId = result.ugcUrn;
+  } else if (network === "instagram") {
+    externalId = await publishToInstagram(env, userId, post, target);
+  } else {
+    throw new Error(`network_not_supported_yet_${network}`);
   }
 
-  const result = await publishUgcPost({ accessToken, authorUrn: finalAuthor, text, imageAsset });
-
-  // Mark target published
   const now = Date.now();
   await env.DB.prepare(
     "UPDATE post_targets SET status = 'published', external_id = ?, published_at = ?, last_error = NULL WHERE id = ?"
-  ).bind(result.ugcUrn, now, targetId).run();
+  ).bind(externalId, now, targetId).run();
   await env.DB.prepare("UPDATE posts SET status = 'published', updated_at = ? WHERE id = ?")
     .bind(now, postId).run();
 
-  return { externalId: result.ugcUrn };
+  return { externalId };
+}
+
+async function publishToInstagram(
+  env: Env,
+  userId: string,
+  post: { id: string; body: string; media_id: string | null },
+  target: { id: string; network: string; target_ref: string | null; body_override: string | null }
+): Promise<string> {
+  const conn = await getMetaConnection(env.DB, userId);
+  if (!conn) throw new Error("not_connected_instagram");
+  if (!target.target_ref) throw new Error("no_instagram_account_selected");
+  const account = await getInstagramAccountByUserId(env.DB, conn.id, target.target_ref);
+  if (!account) throw new Error("instagram_account_not_found");
+  if (!post.media_id) throw new Error("instagram_requires_media");
+
+  const media = await getMediaById(env.DB, userId, post.media_id);
+  if (!media) throw new Error("media_not_found");
+
+  const caption = target.body_override ?? post.body;
+  const mediaType: "image" | "video" = media.mime_type.startsWith("video/") ? "video" : "image";
+  const mediaUrl = await presignGet(
+    {
+      accountId: env.R2_ACCOUNT_ID,
+      bucket: env.R2_BUCKET,
+      accessKeyId: env.R2_ACCESS_KEY_ID,
+      secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+    },
+    media.r2_key,
+    7200 // 2h TTL — IG needs to download from this URL
+  );
+
+  const result = await publishInstagram({
+    pageAccessToken: account.fb_page_access_token,
+    igUserId: account.ig_user_id,
+    caption,
+    mediaUrl,
+    mediaType,
+  });
+  return result.igMediaId;
 }
