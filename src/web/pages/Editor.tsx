@@ -7,6 +7,8 @@ import { NetworkPreview } from "../components/NetworkPreview";
 import { MediaUploader } from "../components/MediaUploader";
 import { MediaPicker } from "../components/MediaPicker";
 import { AIAssistant } from "../components/AIAssistant";
+import { Schedule } from "../components/Schedule";
+import { LinkedInTargetPicker } from "../components/LinkedInTargetPicker";
 import type { Network, Post } from "../../shared/types";
 
 export function Editor() {
@@ -18,6 +20,12 @@ export function Editor() {
   const [mediaId, setMediaId] = useState<string | null>(null);
   const [networks, setNetworks] = useState<Network[]>([]);
   const [overrides, setOverrides] = useState<Record<Network, string | null>>({
+    instagram: null, tiktok: null, linkedin: null,
+  });
+  const [schedules, setSchedules] = useState<Record<Network, number | null>>({
+    instagram: null, tiktok: null, linkedin: null,
+  });
+  const [targetRefs, setTargetRefs] = useState<Record<Network, string | null>>({
     instagram: null, tiktok: null, linkedin: null,
   });
   const [showPicker, setShowPicker] = useState(false);
@@ -36,6 +44,14 @@ export function Editor() {
       const next: Record<Network, string | null> = { instagram: null, tiktok: null, linkedin: null };
       for (const t of post.targets) next[t.network] = t.bodyOverride;
       setOverrides(next);
+      const nextSchedules: Record<Network, number | null> = { instagram: null, tiktok: null, linkedin: null };
+      const nextRefs: Record<Network, string | null> = { instagram: null, tiktok: null, linkedin: null };
+      for (const t of post.targets) {
+        nextSchedules[t.network] = t.scheduledAt;
+        nextRefs[t.network] = t.targetRef;
+      }
+      setSchedules(nextSchedules);
+      setTargetRefs(nextRefs);
     }
   }, [post?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -52,7 +68,11 @@ export function Editor() {
       const withTargets = await api.setTargets(id, networks);
       let latest = withTargets;
       for (const n of networks) {
-        latest = await api.updateTarget(id, n, { bodyOverride: overrides[n] });
+        latest = await api.updateTarget(id, n, {
+          bodyOverride: overrides[n],
+          scheduledAt: schedules[n],
+          targetRef: targetRefs[n],
+        });
       }
       return latest;
     },
@@ -142,14 +162,31 @@ export function Editor() {
             <p style={{ color: "#888" }}>Selecione pelo menos uma rede pra ver o preview.</p>
           )}
           {networks.map((n) => (
-            <NetworkPreview
-              key={n}
-              network={n}
-              baseBody={body}
-              override={overrides[n]}
-              media={media}
-              onOverrideChange={(text) => setOverrides((prev) => ({ ...prev, [n]: text }))}
-            />
+            <div key={n} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <NetworkPreview
+                network={n}
+                baseBody={body}
+                override={overrides[n]}
+                media={media}
+                onOverrideChange={(text) => setOverrides((prev) => ({ ...prev, [n]: text }))}
+              />
+              <div style={{ padding: "8px 12px", background: "#0d0d12", border: "1px solid #1f1f28", borderRadius: 8, fontSize: 12 }}>
+                {n === "linkedin" && (
+                  <div style={{ marginBottom: 8 }}>
+                    <label style={{ display: "block", color: "#aaa", fontSize: 11, marginBottom: 4 }}>Publicar em:</label>
+                    <LinkedInTargetPicker
+                      value={targetRefs.linkedin}
+                      onChange={(ref) => setTargetRefs((prev) => ({ ...prev, linkedin: ref }))}
+                    />
+                  </div>
+                )}
+                <label style={{ display: "block", color: "#aaa", fontSize: 11, marginBottom: 4 }}>Agendar:</label>
+                <Schedule
+                  value={schedules[n]}
+                  onChange={(ms) => setSchedules((prev) => ({ ...prev, [n]: ms }))}
+                />
+              </div>
+            </div>
           ))}
         </div>
       </div>

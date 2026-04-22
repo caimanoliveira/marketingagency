@@ -88,6 +88,9 @@ export interface PostTargetRow {
   published_at: number | null;
   external_id: string | null;
   status: string;
+  target_ref: string | null;
+  last_error: string | null;
+  attempts: number;
 }
 
 export async function createPost(
@@ -174,14 +177,22 @@ export async function updateTarget(
   db: D1Database,
   postId: string,
   network: string,
-  patch: { bodyOverride?: string | null }
+  patch: { bodyOverride?: string | null; scheduledAt?: number | null; targetRef?: string | null }
 ): Promise<boolean> {
   const sets: string[] = [];
   const vals: unknown[] = [];
-  if (patch.bodyOverride !== undefined) {
-    sets.push("body_override = ?");
-    vals.push(patch.bodyOverride);
+  if (patch.bodyOverride !== undefined) { sets.push("body_override = ?"); vals.push(patch.bodyOverride); }
+  if (patch.scheduledAt !== undefined) {
+    sets.push("scheduled_at = ?");
+    vals.push(patch.scheduledAt);
+    // Auto-set status based on scheduled_at
+    if (patch.scheduledAt !== null) {
+      sets.push("status = 'scheduled'");
+    } else {
+      sets.push("status = 'pending'");
+    }
   }
+  if (patch.targetRef !== undefined) { sets.push("target_ref = ?"); vals.push(patch.targetRef); }
   if (sets.length === 0) return true;
   vals.push(postId, network);
   const res = await db

@@ -28,6 +28,9 @@ export interface PostTarget {
   publishedAt: number | null;
   externalId: string | null;
   status: TargetStatus;
+  targetRef: string | null;
+  lastError: string | null;
+  attempts: number;
 }
 
 export interface Post {
@@ -62,6 +65,8 @@ export interface UpdatePostRequest {
 }
 export interface UpdateTargetRequest {
   bodyOverride?: string | null;
+  scheduledAt?: number | null;
+  targetRef?: string | null;
 }
 export interface PresignedUploadRequest {
   filename: string;

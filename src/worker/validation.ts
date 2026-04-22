@@ -15,6 +15,8 @@ export const UpdatePostSchema = z.object({
 
 export const UpdateTargetSchema = z.object({
   bodyOverride: z.string().max(5000).nullable().optional(),
+  scheduledAt: z.number().int().nullable().optional(),
+  targetRef: z.string().max(256).nullable().optional(),
 });
 
 export const PresignedUploadSchema = z.object({

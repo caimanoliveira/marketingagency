@@ -57,6 +57,9 @@ function targetRowToPublic(r: PostTargetRow): PostTarget {
     publishedAt: r.published_at,
     externalId: r.external_id,
     status: r.status as PostTarget["status"],
+    targetRef: r.target_ref,
+    lastError: r.last_error,
+    attempts: r.attempts,
   };
 }
 
