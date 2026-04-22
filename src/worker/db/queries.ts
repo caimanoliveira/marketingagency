@@ -275,6 +275,80 @@ export async function deleteLinkedInConnection(db: D1Database, userId: string): 
   await db.prepare("DELETE FROM linkedin_connections WHERE user_id = ?").bind(userId).run();
 }
 
+export interface MetaConnectionRow {
+  id: string;
+  user_id: string;
+  fb_user_id: string;
+  fb_user_name: string;
+  access_token: string;
+  expires_at: number;
+  scopes: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface InstagramAccountRow {
+  id: string;
+  connection_id: string;
+  ig_user_id: string;
+  ig_username: string;
+  fb_page_id: string;
+  fb_page_name: string;
+  fb_page_access_token: string;
+  profile_picture_url: string | null;
+  created_at: number;
+}
+
+export async function upsertMetaConnection(
+  db: D1Database,
+  params: { id: string; userId: string; fbUserId: string; fbUserName: string; accessToken: string; expiresAt: number; scopes: string }
+): Promise<void> {
+  const now = Date.now();
+  await db.prepare(
+    `INSERT INTO meta_connections (id, user_id, fb_user_id, fb_user_name, access_token, expires_at, scopes, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(user_id) DO UPDATE SET
+       fb_user_id = excluded.fb_user_id,
+       fb_user_name = excluded.fb_user_name,
+       access_token = excluded.access_token,
+       expires_at = excluded.expires_at,
+       scopes = excluded.scopes,
+       updated_at = excluded.updated_at`
+  ).bind(params.id, params.userId, params.fbUserId, params.fbUserName, params.accessToken, params.expiresAt, params.scopes, now, now).run();
+}
+
+export async function getMetaConnection(db: D1Database, userId: string): Promise<MetaConnectionRow | null> {
+  return (await db.prepare("SELECT * FROM meta_connections WHERE user_id = ?").bind(userId).first<MetaConnectionRow>()) ?? null;
+}
+
+export async function replaceInstagramAccounts(
+  db: D1Database,
+  connectionId: string,
+  accounts: Array<{ igUserId: string; igUsername: string; fbPageId: string; fbPageName: string; fbPageAccessToken: string; profilePictureUrl: string | null }>
+): Promise<void> {
+  const now = Date.now();
+  await db.prepare("DELETE FROM instagram_accounts WHERE connection_id = ?").bind(connectionId).run();
+  if (accounts.length === 0) return;
+  const stmts = accounts.map((a, i) =>
+    db.prepare("INSERT INTO instagram_accounts (id, connection_id, ig_user_id, ig_username, fb_page_id, fb_page_name, fb_page_access_token, profile_picture_url, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .bind(`iga_${connectionId}_${i}`, connectionId, a.igUserId, a.igUsername, a.fbPageId, a.fbPageName, a.fbPageAccessToken, a.profilePictureUrl, now)
+  );
+  await db.batch(stmts);
+}
+
+export async function listInstagramAccounts(db: D1Database, connectionId: string): Promise<InstagramAccountRow[]> {
+  const { results } = await db.prepare("SELECT * FROM instagram_accounts WHERE connection_id = ? ORDER BY ig_username").bind(connectionId).all<InstagramAccountRow>();
+  return results ?? [];
+}
+
+export async function getInstagramAccountByUserId(db: D1Database, connectionId: string, igUserId: string): Promise<InstagramAccountRow | null> {
+  return (await db.prepare("SELECT * FROM instagram_accounts WHERE connection_id = ? AND ig_user_id = ?").bind(connectionId, igUserId).first<InstagramAccountRow>()) ?? null;
+}
+
+export async function deleteMetaConnection(db: D1Database, userId: string): Promise<void> {
+  await db.prepare("DELETE FROM meta_connections WHERE user_id = ?").bind(userId).run();
+}
+
 export async function saveOauthState(
   db: D1Database,
   params: { state: string; userId: string; network: string; redirectTo: string | null }
