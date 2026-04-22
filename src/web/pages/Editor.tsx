@@ -171,6 +171,18 @@ export function Editor() {
                 onOverrideChange={(text) => setOverrides((prev) => ({ ...prev, [n]: text }))}
               />
               <div style={{ padding: "8px 12px", background: "#0d0d12", border: "1px solid #1f1f28", borderRadius: 8, fontSize: 12 }}>
+                {post?.targets.find((t) => t.network === n) && (
+                  <div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>
+                    Status: <span className={`status-${post.targets.find((t) => t.network === n)!.status}`}>
+                      {post.targets.find((t) => t.network === n)!.status}
+                    </span>
+                    {post.targets.find((t) => t.network === n)?.lastError && (
+                      <span style={{ color: "#ff6b6b", marginLeft: 8 }}>
+                        ({post.targets.find((t) => t.network === n)!.lastError})
+                      </span>
+                    )}
+                  </div>
+                )}
                 {n === "linkedin" && (
                   <div style={{ marginBottom: 8 }}>
                     <label style={{ display: "block", color: "#aaa", fontSize: 11, marginBottom: 4 }}>Publicar em:</label>
@@ -185,6 +197,30 @@ export function Editor() {
                   value={schedules[n]}
                   onChange={(ms) => setSchedules((prev) => ({ ...prev, [n]: ms }))}
                 />
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <button
+                    className="btn-primary"
+                    style={{ fontSize: 11, padding: "4px 10px" }}
+                    onClick={async () => {
+                      if (!id) return;
+                      // Save first (idempotent), then publish
+                      try {
+                        await saveBase.mutateAsync();
+                        await saveTargets.mutateAsync();
+                        await api.publishNow(id, n);
+                        qc.invalidateQueries({ queryKey: ["post", id] });
+                        qc.invalidateQueries({ queryKey: ["posts"] });
+                        alert("Publicado!");
+                      } catch (e) {
+                        alert("Falhou: " + (e instanceof Error ? e.message : "erro"));
+                      }
+                    }}
+                    disabled={!body.trim()}
+                    title={!body.trim() ? "Copy vazio" : "Publicar agora nessa rede"}
+                  >
+                    🚀 Publicar agora
+                  </button>
+                </div>
               </div>
             </div>
           ))}

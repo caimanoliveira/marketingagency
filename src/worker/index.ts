@@ -5,6 +5,7 @@ import { media } from "./routes/media";
 import { posts } from "./routes/posts";
 import { ai } from "./routes/ai";
 import { connections } from "./routes/connections";
+import { publish } from "./routes/publish";
 import type { PublishJob } from "../shared/types";
 
 export interface Env {
@@ -34,6 +35,7 @@ app.route("/api/media", media);
 app.route("/api/posts", posts);
 app.route("/api/ai", ai);
 app.route("/api/connections", connections);
+app.route("/api/publish", publish);
 
 app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));
 

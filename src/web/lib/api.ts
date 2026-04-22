@@ -64,6 +64,9 @@ export const api = {
   aiTone: (body: AdjustToneRequest) =>
     json<AdjustToneResponse>("/api/ai/tone", "POST", body),
 
+  publishNow: (postId: string, network: Network) =>
+    json<{ ok: true; externalId: string }>(`/api/publish/${postId}/${network}`, "POST"),
+
   getLinkedIn: () => req<{
     connected: boolean;
     member?: { memberId: string; memberName: string; expiresAt: number; scopes: string[] };

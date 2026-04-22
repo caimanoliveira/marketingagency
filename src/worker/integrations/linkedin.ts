@@ -40,3 +40,115 @@ export async function fetchAdminOrgs(accessToken: string): Promise<LinkedInOrgIt
   }
   return out;
 }
+
+export async function refreshAccessToken(
+  env: { LINKEDIN_CLIENT_ID: string; LINKEDIN_CLIENT_SECRET: string },
+  refreshToken: string
+): Promise<{ accessToken: string; refreshToken: string | null; expiresAt: number }> {
+  const body = new URLSearchParams({
+    grant_type: "refresh_token",
+    refresh_token: refreshToken,
+    client_id: env.LINKEDIN_CLIENT_ID,
+    client_secret: env.LINKEDIN_CLIENT_SECRET,
+  });
+  const res = await fetch("https://www.linkedin.com/oauth/v2/accessToken", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body,
+  });
+  if (!res.ok) throw new Error(`refresh_failed_${res.status}`);
+  const data = await res.json() as { access_token: string; refresh_token?: string; expires_in: number };
+  return {
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token ?? null,
+    expiresAt: Date.now() + data.expires_in * 1000,
+  };
+}
+
+export async function uploadImageToLinkedIn(
+  accessToken: string,
+  authorUrn: string,
+  imageBytes: ArrayBuffer,
+  mimeType: string
+): Promise<string> {
+  const regRes = await fetch("https://api.linkedin.com/v2/assets?action=registerUpload", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      "content-type": "application/json",
+      "X-Restli-Protocol-Version": "2.0.0",
+    },
+    body: JSON.stringify({
+      registerUploadRequest: {
+        recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
+        owner: authorUrn,
+        serviceRelationships: [{ relationshipType: "OWNER", identifier: "urn:li:userGeneratedContent" }],
+      },
+    }),
+  });
+  if (!regRes.ok) {
+    const t = await regRes.text().catch(() => "");
+    throw new Error(`register_upload_${regRes.status}_${t.slice(0, 200)}`);
+  }
+  const reg = await regRes.json() as {
+    value: {
+      asset: string;
+      uploadMechanism: {
+        ["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"]: { uploadUrl: string };
+      };
+    };
+  };
+  const asset = reg.value.asset;
+  const uploadUrl = reg.value.uploadMechanism["com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"].uploadUrl;
+
+  const upRes = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      "content-type": mimeType,
+    },
+    body: imageBytes,
+  });
+  if (!upRes.ok) throw new Error(`upload_${upRes.status}`);
+  return asset;
+}
+
+export interface PublishUgcArgs {
+  accessToken: string;
+  authorUrn: string;
+  text: string;
+  imageAsset?: string;
+}
+
+export async function publishUgcPost(args: PublishUgcArgs): Promise<{ ugcUrn: string }> {
+  const media = args.imageAsset
+    ? [{ status: "READY", description: { text: "" }, media: args.imageAsset, title: { text: "" } }]
+    : [];
+  const body = {
+    author: args.authorUrn,
+    lifecycleState: "PUBLISHED",
+    specificContent: {
+      "com.linkedin.ugc.ShareContent": {
+        shareCommentary: { text: args.text },
+        shareMediaCategory: media.length ? "IMAGE" : "NONE",
+        ...(media.length ? { media } : {}),
+      },
+    },
+    visibility: { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" },
+  };
+  const res = await fetch("https://api.linkedin.com/v2/ugcPosts", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${args.accessToken}`,
+      "content-type": "application/json",
+      "X-Restli-Protocol-Version": "2.0.0",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const t = await res.text().catch(() => "");
+    throw new Error(`publish_${res.status}_${t.slice(0, 200)}`);
+  }
+  const location = res.headers.get("x-restli-id") ?? res.headers.get("location") ?? "";
+  return { ugcUrn: location || "unknown" };
+}
