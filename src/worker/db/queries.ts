@@ -191,6 +191,95 @@ export async function updateTarget(
   return res.meta.changes > 0;
 }
 
+export interface LinkedInConnectionRow {
+  id: string;
+  user_id: string;
+  linkedin_member_id: string;
+  linkedin_member_name: string;
+  access_token: string;
+  refresh_token: string | null;
+  expires_at: number;
+  scopes: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface LinkedInOrgRow {
+  id: string;
+  connection_id: string;
+  org_urn: string;
+  org_name: string;
+  org_logo_url: string | null;
+  created_at: number;
+}
+
+export async function upsertLinkedInConnection(
+  db: D1Database,
+  params: { id: string; userId: string; memberId: string; memberName: string; accessToken: string; refreshToken: string | null; expiresAt: number; scopes: string }
+): Promise<void> {
+  const now = Date.now();
+  await db.prepare(
+    `INSERT INTO linkedin_connections (id, user_id, linkedin_member_id, linkedin_member_name, access_token, refresh_token, expires_at, scopes, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(user_id) DO UPDATE SET
+       linkedin_member_id = excluded.linkedin_member_id,
+       linkedin_member_name = excluded.linkedin_member_name,
+       access_token = excluded.access_token,
+       refresh_token = excluded.refresh_token,
+       expires_at = excluded.expires_at,
+       scopes = excluded.scopes,
+       updated_at = excluded.updated_at`
+  ).bind(
+    params.id, params.userId, params.memberId, params.memberName,
+    params.accessToken, params.refreshToken, params.expiresAt, params.scopes,
+    now, now
+  ).run();
+}
+
+export async function getLinkedInConnection(db: D1Database, userId: string): Promise<LinkedInConnectionRow | null> {
+  return (await db.prepare("SELECT * FROM linkedin_connections WHERE user_id = ?").bind(userId).first<LinkedInConnectionRow>()) ?? null;
+}
+
+export async function replaceLinkedInOrgs(
+  db: D1Database,
+  connectionId: string,
+  orgs: Array<{ orgUrn: string; orgName: string; orgLogoUrl: string | null }>
+): Promise<void> {
+  const now = Date.now();
+  await db.prepare("DELETE FROM linkedin_orgs WHERE connection_id = ?").bind(connectionId).run();
+  if (orgs.length === 0) return;
+  const stmts = orgs.map((o, i) =>
+    db.prepare("INSERT INTO linkedin_orgs (id, connection_id, org_urn, org_name, org_logo_url, created_at) VALUES (?, ?, ?, ?, ?, ?)")
+      .bind(`lio_${connectionId}_${i}`, connectionId, o.orgUrn, o.orgName, o.orgLogoUrl, now)
+  );
+  await db.batch(stmts);
+}
+
+export async function listLinkedInOrgs(db: D1Database, connectionId: string): Promise<LinkedInOrgRow[]> {
+  const { results } = await db.prepare("SELECT * FROM linkedin_orgs WHERE connection_id = ? ORDER BY org_name").bind(connectionId).all<LinkedInOrgRow>();
+  return results ?? [];
+}
+
+export async function deleteLinkedInConnection(db: D1Database, userId: string): Promise<void> {
+  await db.prepare("DELETE FROM linkedin_connections WHERE user_id = ?").bind(userId).run();
+}
+
+export async function saveOauthState(
+  db: D1Database,
+  params: { state: string; userId: string; network: string; redirectTo: string | null }
+): Promise<void> {
+  await db.prepare("INSERT INTO oauth_states (state, user_id, network, redirect_to, created_at) VALUES (?, ?, ?, ?, ?)")
+    .bind(params.state, params.userId, params.network, params.redirectTo, Date.now()).run();
+}
+
+export async function consumeOauthState(db: D1Database, state: string): Promise<{ userId: string; network: string; redirectTo: string | null } | null> {
+  const row = await db.prepare("SELECT user_id, network, redirect_to FROM oauth_states WHERE state = ? AND created_at > ?")
+    .bind(state, Date.now() - 10 * 60 * 1000).first<{ user_id: string; network: string; redirect_to: string | null }>();
+  if (!row) return null;
+  await db.prepare("DELETE FROM oauth_states WHERE state = ?").bind(state).run();
+  return { userId: row.user_id, network: row.network, redirectTo: row.redirect_to };
+}
+
 export async function logAiGeneration(
   db: D1Database,
   params: {
