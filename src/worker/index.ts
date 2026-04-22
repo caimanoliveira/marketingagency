@@ -41,4 +41,14 @@ app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));
 
 app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw));
 
-export default app;
+export default {
+  fetch: app.fetch.bind(app),
+  async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    const { scanAndEnqueue } = await import("./scheduler/cron");
+    ctx.waitUntil(scanAndEnqueue(env).then((n) => console.log(`cron enqueued ${n} jobs`)));
+  },
+  async queue(batch: MessageBatch<PublishJob>, env: Env): Promise<void> {
+    const { handlePublishBatch } = await import("./scheduler/queue-consumer");
+    await handlePublishBatch(batch, env);
+  },
+} satisfies ExportedHandler<Env, PublishJob>;
