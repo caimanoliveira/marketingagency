@@ -63,4 +63,12 @@ export const api = {
     json<RewriteForNetworkResponse>("/api/ai/rewrite", "POST", body),
   aiTone: (body: AdjustToneRequest) =>
     json<AdjustToneResponse>("/api/ai/tone", "POST", body),
+
+  getLinkedIn: () => req<{
+    connected: boolean;
+    member?: { memberId: string; memberName: string; expiresAt: number; scopes: string[] };
+    orgs?: Array<{ id: string; orgUrn: string; orgName: string; orgLogoUrl: string | null }>;
+  }>("/api/connections/linkedin"),
+  refreshLinkedInOrgs: () => json<{ ok: true; count: number }>("/api/connections/linkedin/refresh-orgs", "POST"),
+  disconnectLinkedIn: () => json<{ ok: true }>("/api/connections/linkedin", "DELETE"),
 };

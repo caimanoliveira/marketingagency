@@ -26,6 +26,7 @@ export function Layout() {
           <NavLink to="/posts" end>Posts</NavLink>
           <NavLink to="/posts/new">Novo post</NavLink>
           <NavLink to="/media">Biblioteca</NavLink>
+          <NavLink to="/settings">Configurações</NavLink>
         </nav>
         <div className="sidebar-foot">
           <span className="user-email">{data.email}</span>

@@ -6,6 +6,7 @@ import { Layout } from "./components/Layout";
 import { PostsList } from "./pages/PostsList";
 import { Editor } from "./pages/Editor";
 import { MediaPage } from "./pages/Media";
+import { Settings } from "./pages/Settings";
 import "./styles.css";
 
 export function App() {
@@ -20,6 +21,7 @@ export function App() {
             <Route path="/posts/new" element={<Editor />} />
             <Route path="/posts/:id" element={<Editor />} />
             <Route path="/media" element={<MediaPage />} />
+            <Route path="/settings" element={<Settings />} />
           </Route>
         </Routes>
       </BrowserRouter>
