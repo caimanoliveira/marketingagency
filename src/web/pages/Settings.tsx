@@ -1,6 +1,67 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 
+function InstagramPanel() {
+  const qc = useQueryClient();
+  const { data } = useQuery({ queryKey: ["instagram"], queryFn: api.getInstagram });
+
+  const refresh = useMutation({
+    mutationFn: () => api.refreshInstagram(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["instagram"] }),
+  });
+
+  const disconnect = useMutation({
+    mutationFn: () => api.disconnectInstagram(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["instagram"] }),
+  });
+
+  if (!data?.connected) {
+    return (
+      <div>
+        <p style={{ color: "#aaa" }}>Não conectado. Exige conta Instagram Business ligada a uma página do Facebook.</p>
+        <a
+          className="btn-primary"
+          href="/api/connections/instagram/start"
+          style={{ textDecoration: "none", display: "inline-block" }}
+        >
+          Conectar Instagram
+        </a>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <p><strong>{data.member!.fbUserName}</strong> (Facebook)</p>
+      <p style={{ color: "#888", fontSize: 12 }}>
+        Token expira em {new Date(data.member!.expiresAt).toLocaleDateString("pt-BR")}
+      </p>
+      <h3 style={{ fontSize: 14, marginTop: 16 }}>Contas Instagram ({data.accounts?.length ?? 0})</h3>
+      {(data.accounts?.length ?? 0) === 0 && (
+        <p style={{ color: "#888", fontSize: 13 }}>
+          Nenhuma conta Instagram Business encontrada. Verifique se sua conta IG está configurada como Business e conectada a uma página do Facebook que você administra.
+        </p>
+      )}
+      {data.accounts?.map((a) => (
+        <div key={a.id} style={{ display: "flex", gap: 12, alignItems: "center", padding: "6px 0" }}>
+          {a.profilePictureUrl && (
+            <img src={a.profilePictureUrl} alt="" style={{ width: 28, height: 28, borderRadius: 14 }} />
+          )}
+          <span>@{a.igUsername}</span>
+          <span style={{ color: "#666", fontSize: 11 }}>via {a.fbPageName}</span>
+        </div>
+      ))}
+      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+        <button className="btn-secondary" onClick={() => refresh.mutate()} disabled={refresh.isPending}>
+          {refresh.isPending ? "Atualizando..." : "Atualizar contas"}
+        </button>
+        <button className="btn-danger" onClick={() => { if (confirm("Desconectar Instagram?")) disconnect.mutate(); }}>
+          Desconectar
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function Settings() {
   const qc = useQueryClient();
   const { data } = useQuery({ queryKey: ["linkedin"], queryFn: api.getLinkedIn });
@@ -57,6 +118,10 @@ export function Settings() {
             </div>
           </div>
         )}
+      </section>
+      <section style={{ background: "#111118", border: "1px solid #1f1f28", borderRadius: 12, padding: 16, maxWidth: 640, marginTop: 16 }}>
+        <h2 style={{ marginTop: 0, fontSize: 16 }}>Instagram</h2>
+        <InstagramPanel />
       </section>
     </div>
   );

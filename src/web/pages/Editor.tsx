@@ -9,6 +9,7 @@ import { MediaPicker } from "../components/MediaPicker";
 import { AIAssistant } from "../components/AIAssistant";
 import { Schedule } from "../components/Schedule";
 import { LinkedInTargetPicker } from "../components/LinkedInTargetPicker";
+import { InstagramTargetPicker } from "../components/InstagramTargetPicker";
 import type { Network, Post } from "../../shared/types";
 
 export function Editor() {
@@ -189,6 +190,15 @@ export function Editor() {
                     <LinkedInTargetPicker
                       value={targetRefs.linkedin}
                       onChange={(ref) => setTargetRefs((prev) => ({ ...prev, linkedin: ref }))}
+                    />
+                  </div>
+                )}
+                {n === "instagram" && (
+                  <div style={{ marginBottom: 8 }}>
+                    <label style={{ display: "block", color: "#aaa", fontSize: 11, marginBottom: 4 }}>Conta Instagram:</label>
+                    <InstagramTargetPicker
+                      value={targetRefs.instagram}
+                      onChange={(ref) => setTargetRefs((prev) => ({ ...prev, instagram: ref }))}
                     />
                   </div>
                 )}

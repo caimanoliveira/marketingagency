@@ -74,4 +74,12 @@ export const api = {
   }>("/api/connections/linkedin"),
   refreshLinkedInOrgs: () => json<{ ok: true; count: number }>("/api/connections/linkedin/refresh-orgs", "POST"),
   disconnectLinkedIn: () => json<{ ok: true }>("/api/connections/linkedin", "DELETE"),
+
+  getInstagram: () => req<{
+    connected: boolean;
+    member?: { fbUserId: string; fbUserName: string; expiresAt: number; scopes: string[] };
+    accounts?: Array<{ id: string; igUserId: string; igUsername: string; fbPageId: string; fbPageName: string; profilePictureUrl: string | null }>;
+  }>("/api/connections/instagram"),
+  refreshInstagram: () => json<{ ok: true; count: number }>("/api/connections/instagram/refresh", "POST"),
+  disconnectInstagram: () => json<{ ok: true }>("/api/connections/instagram", "DELETE"),
 };
