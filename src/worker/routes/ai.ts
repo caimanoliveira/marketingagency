@@ -53,7 +53,8 @@ ai.post("/variations", async (c) => {
       durationMs: result.durationMs,
     });
     return c.json(response);
-  } catch {
+  } catch (err) {
+    console.error("[ai/variations]", err);
     return c.json({ error: "upstream_failed" }, 502);
   }
 });
@@ -87,7 +88,8 @@ ai.post("/rewrite", async (c) => {
       durationMs: result.durationMs,
     });
     return c.json(response);
-  } catch {
+  } catch (err) {
+    console.error("[ai/rewrite]", err);
     return c.json({ error: "upstream_failed" }, 502);
   }
 });
@@ -121,7 +123,8 @@ ai.post("/tone", async (c) => {
       durationMs: result.durationMs,
     });
     return c.json(response);
-  } catch {
+  } catch (err) {
+    console.error("[ai/tone]", err);
     return c.json({ error: "upstream_failed" }, 502);
   }
 });
