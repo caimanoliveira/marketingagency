@@ -95,3 +95,36 @@ export interface AdjustToneRequest {
   tone: Tone;
 }
 export interface AdjustToneResponse { adjusted: string; }
+
+export interface LinkedInConnection {
+  memberId: string;
+  memberName: string;
+  expiresAt: number;
+  scopes: string[];
+}
+
+export interface LinkedInOrg {
+  id: string;
+  orgUrn: string;
+  orgName: string;
+  orgLogoUrl: string | null;
+}
+
+export type LinkedInTargetRef = string | null;
+
+export interface SchedulePostTargetRequest {
+  scheduledAt: number | null;
+  targetRef?: LinkedInTargetRef;
+}
+
+export interface PublishNowRequest {
+  network: Network;
+  targetRef?: LinkedInTargetRef;
+}
+
+export interface PublishJob {
+  postId: string;
+  targetId: string;
+  network: Network;
+  attempt: number;
+}

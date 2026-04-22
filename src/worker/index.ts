@@ -4,6 +4,7 @@ import { auth } from "./routes/auth";
 import { media } from "./routes/media";
 import { posts } from "./routes/posts";
 import { ai } from "./routes/ai";
+import type { PublishJob } from "../shared/types";
 
 export interface Env {
   DB: D1Database;
@@ -17,6 +18,11 @@ export interface Env {
   R2_ACCESS_KEY_ID: string;
   R2_SECRET_ACCESS_KEY: string;
   ANTHROPIC_API_KEY: string;
+  LINKEDIN_CLIENT_ID: string;
+  LINKEDIN_CLIENT_SECRET: string;
+  LINKEDIN_REDIRECT_URL: string;
+  APP_ORIGIN: string;
+  PUBLISH_QUEUE: Queue<PublishJob>;
 }
 
 const app = new Hono<{ Bindings: Env }>();

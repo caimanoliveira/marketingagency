@@ -2,3 +2,5 @@ JWT_SECRET=change-me-to-a-long-random-string
 R2_ACCESS_KEY_ID=your-r2-access-key-id
 R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
 ANTHROPIC_API_KEY=sk-ant-placeholder
+LINKEDIN_CLIENT_ID=your-linkedin-client-id
+LINKEDIN_CLIENT_SECRET=your-linkedin-client-secret
