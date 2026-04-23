@@ -173,3 +173,55 @@ export async function publishInstagram(args: PublishInstagramArgs): Promise<{ ig
   const { id: igMediaId } = (await pubRes.json()) as { id: string };
   return { igMediaId };
 }
+
+export async function fetchIgAccountMetrics(
+  igUserId: string,
+  pageAccessToken: string
+): Promise<{ followers: number | null; impressions: number | null; reach: number | null; profileViews: number | null }> {
+  // Followers + media_count
+  const basicUrl = new URL(`${GRAPH_V20}/${igUserId}`);
+  basicUrl.searchParams.set("fields", "followers_count,media_count");
+  basicUrl.searchParams.set("access_token", pageAccessToken);
+  const basicRes = await fetch(basicUrl.toString());
+  let followers: number | null = null;
+  if (basicRes.ok) {
+    const basic = await basicRes.json() as { followers_count?: number };
+    followers = basic.followers_count ?? null;
+  }
+
+  // Insights (day period)
+  const insightsUrl = new URL(`${GRAPH_V20}/${igUserId}/insights`);
+  insightsUrl.searchParams.set("metric", "impressions,reach,profile_views");
+  insightsUrl.searchParams.set("period", "day");
+  insightsUrl.searchParams.set("access_token", pageAccessToken);
+  const insightsRes = await fetch(insightsUrl.toString());
+  let impressions: number | null = null, reach: number | null = null, profileViews: number | null = null;
+  if (insightsRes.ok) {
+    const body = await insightsRes.json() as { data?: Array<{ name: string; values?: Array<{ value: number }> }> };
+    for (const m of body.data ?? []) {
+      const v = m.values?.[0]?.value ?? null;
+      if (m.name === "impressions") impressions = v;
+      else if (m.name === "reach") reach = v;
+      else if (m.name === "profile_views") profileViews = v;
+    }
+  }
+  return { followers, impressions, reach, profileViews };
+}
+
+export async function fetchIgPostMetrics(
+  igMediaId: string,
+  pageAccessToken: string
+): Promise<{ likes: number | null; comments: number | null; saved: number | null; reach: number | null; impressions: number | null; shares: number | null }> {
+  const url = new URL(`${GRAPH_V20}/${igMediaId}/insights`);
+  url.searchParams.set("metric", "likes,comments,saved,reach,impressions,shares");
+  url.searchParams.set("access_token", pageAccessToken);
+  const res = await fetch(url.toString());
+  const out = { likes: null as number | null, comments: null as number | null, saved: null as number | null, reach: null as number | null, impressions: null as number | null, shares: null as number | null };
+  if (!res.ok) return out;
+  const body = await res.json() as { data?: Array<{ name: string; values?: Array<{ value: number }> }> };
+  for (const m of body.data ?? []) {
+    const v = m.values?.[0]?.value ?? null;
+    if (m.name in out) (out as Record<string, number | null>)[m.name] = v;
+  }
+  return out;
+}

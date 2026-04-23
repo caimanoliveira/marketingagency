@@ -152,3 +152,28 @@ export async function publishUgcPost(args: PublishUgcArgs): Promise<{ ugcUrn: st
   const location = res.headers.get("x-restli-id") ?? res.headers.get("location") ?? "";
   return { ugcUrn: location || "unknown" };
 }
+
+export async function fetchLinkedInPostMetrics(
+  accessToken: string,
+  ugcUrn: string
+): Promise<{ likes: number | null; comments: number | null }> {
+  const encoded = encodeURIComponent(ugcUrn);
+  // Likes count: /socialActions/{urn}/likes?count=0 (just gets paging.total)
+  const likesUrl = `https://api.linkedin.com/v2/socialActions/${encoded}/likes?count=0`;
+  const likesRes = await fetch(likesUrl, { headers: { authorization: `Bearer ${accessToken}`, "X-Restli-Protocol-Version": "2.0.0" } });
+  let likes: number | null = null;
+  if (likesRes.ok) {
+    const body = await likesRes.json() as { paging?: { total?: number } };
+    likes = body.paging?.total ?? null;
+  }
+
+  const commentsUrl = `https://api.linkedin.com/v2/socialActions/${encoded}/comments?count=0`;
+  const commentsRes = await fetch(commentsUrl, { headers: { authorization: `Bearer ${accessToken}`, "X-Restli-Protocol-Version": "2.0.0" } });
+  let comments: number | null = null;
+  if (commentsRes.ok) {
+    const body = await commentsRes.json() as { paging?: { total?: number } };
+    comments = body.paging?.total ?? null;
+  }
+
+  return { likes, comments };
+}

@@ -6,6 +6,7 @@ import { posts } from "./routes/posts";
 import { ai } from "./routes/ai";
 import { connections } from "./routes/connections";
 import { publish } from "./routes/publish";
+import { analytics } from "./routes/analytics";
 import type { PublishJob } from "../shared/types";
 
 export interface Env {
@@ -39,6 +40,7 @@ app.route("/api/posts", posts);
 app.route("/api/ai", ai);
 app.route("/api/connections", connections);
 app.route("/api/publish", publish);
+app.route("/api/analytics", analytics);
 
 app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));
 
@@ -46,9 +48,14 @@ app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw));
 
 export default {
   fetch: app.fetch.bind(app),
-  async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
-    const { scanAndEnqueue } = await import("./scheduler/cron");
-    ctx.waitUntil(scanAndEnqueue(env).then((n) => console.log(`cron enqueued ${n} jobs`)));
+  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    if (controller.cron === "0 3 * * *") {
+      const { collectMetrics } = await import("./analytics/collect");
+      ctx.waitUntil(collectMetrics(env).then((r) => console.log(`analytics: ${r.usersProcessed} users, ${r.errors.length} errors`)));
+    } else {
+      const { scanAndEnqueue } = await import("./scheduler/cron");
+      ctx.waitUntil(scanAndEnqueue(env).then((n) => console.log(`cron enqueued ${n} jobs`)));
+    }
   },
   async queue(batch: MessageBatch<PublishJob>, env: Env): Promise<void> {
     const { handlePublishBatch } = await import("./scheduler/queue-consumer");
