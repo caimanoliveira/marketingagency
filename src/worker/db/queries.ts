@@ -514,3 +514,174 @@ export async function logAiGeneration(
     )
     .run();
 }
+
+export async function upsertAccountMetrics(
+  db: D1Database,
+  params: {
+    id: string; userId: string; network: string; accountRef: string; snapshotDate: string;
+    followers: number | null; impressions: number | null; reach: number | null; profileViews: number | null;
+    extra: unknown | null;
+  }
+): Promise<void> {
+  await db.prepare(
+    `INSERT INTO account_metrics (id, user_id, network, account_ref, snapshot_date, followers, impressions, reach, profile_views, extra_json, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(user_id, network, account_ref, snapshot_date) DO UPDATE SET
+       followers = excluded.followers,
+       impressions = excluded.impressions,
+       reach = excluded.reach,
+       profile_views = excluded.profile_views,
+       extra_json = excluded.extra_json`
+  ).bind(
+    params.id, params.userId, params.network, params.accountRef, params.snapshotDate,
+    params.followers, params.impressions, params.reach, params.profileViews,
+    params.extra ? JSON.stringify(params.extra) : null,
+    Date.now()
+  ).run();
+}
+
+export async function insertPostMetrics(
+  db: D1Database,
+  params: {
+    id: string; postId: string; targetId: string; network: string; snapshotAt: number;
+    likes: number | null; comments: number | null; shares: number | null; saved: number | null;
+    reach: number | null; impressions: number | null; engagementRate: number | null;
+    extra: unknown | null;
+  }
+): Promise<void> {
+  await db.prepare(
+    `INSERT INTO post_metrics (id, post_id, target_id, network, snapshot_at, likes, comments, shares, saved, reach, impressions, engagement_rate, extra_json, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    params.id, params.postId, params.targetId, params.network, params.snapshotAt,
+    params.likes, params.comments, params.shares, params.saved,
+    params.reach, params.impressions, params.engagementRate,
+    params.extra ? JSON.stringify(params.extra) : null,
+    Date.now()
+  ).run();
+}
+
+export interface PostMetricsRow {
+  id: string;
+  post_id: string;
+  target_id: string;
+  network: string;
+  snapshot_at: number;
+  likes: number | null;
+  comments: number | null;
+  shares: number | null;
+  saved: number | null;
+  reach: number | null;
+  impressions: number | null;
+  engagement_rate: number | null;
+}
+
+export async function latestPostMetrics(db: D1Database, targetId: string): Promise<PostMetricsRow | null> {
+  return (await db.prepare(
+    "SELECT * FROM post_metrics WHERE target_id = ? ORDER BY snapshot_at DESC LIMIT 1"
+  ).bind(targetId).first<PostMetricsRow>()) ?? null;
+}
+
+interface AnalyticsSummaryResult {
+  periodDays: number;
+  totalReach: number;
+  totalEngagement: number;
+  followerGrowth: number;
+  postsPublished: number;
+  weeklyEngagement: Array<{ weekStart: string; likes: number; comments: number; shares: number }>;
+  contentMix: Array<{ network: string; count: number }>;
+}
+
+export async function summaryForPeriod(
+  db: D1Database,
+  userId: string,
+  days: number
+): Promise<AnalyticsSummaryResult> {
+  const now = Date.now();
+  const windowStart = now - days * 24 * 3600 * 1000;
+
+  // Posts published in window + content mix
+  const mixRes = await db.prepare(
+    `SELECT t.network, COUNT(DISTINCT t.post_id) AS c
+     FROM post_targets t
+     JOIN posts p ON p.id = t.post_id
+     WHERE p.user_id = ? AND t.status = 'published' AND t.published_at >= ?
+     GROUP BY t.network`
+  ).bind(userId, windowStart).all<{ network: string; c: number }>();
+  const contentMix = (mixRes.results ?? []).map((r) => ({ network: r.network, count: r.c }));
+  const postsPublished = contentMix.reduce((s, r) => s + r.count, 0);
+
+  // Aggregate latest metrics per target (not the sum across snapshots — we want latest per post to represent current state)
+  // For simplicity: sum latest snapshot per target for posts published in window
+  const engRes = await db.prepare(
+    `SELECT
+       COALESCE(SUM(COALESCE(pm.likes, 0)), 0) AS likes,
+       COALESCE(SUM(COALESCE(pm.comments, 0)), 0) AS comments,
+       COALESCE(SUM(COALESCE(pm.shares, 0)), 0) AS shares,
+       COALESCE(SUM(COALESCE(pm.saved, 0)), 0) AS saved,
+       COALESCE(SUM(COALESCE(pm.reach, 0)), 0) AS reach
+     FROM post_targets t
+     JOIN posts p ON p.id = t.post_id
+     LEFT JOIN post_metrics pm ON pm.id = (
+       SELECT id FROM post_metrics WHERE target_id = t.id ORDER BY snapshot_at DESC LIMIT 1
+     )
+     WHERE p.user_id = ? AND t.status = 'published' AND t.published_at >= ?`
+  ).bind(userId, windowStart).first<{ likes: number; comments: number; shares: number; saved: number; reach: number }>();
+
+  const totalEngagement = (engRes?.likes ?? 0) + (engRes?.comments ?? 0) + (engRes?.shares ?? 0) + (engRes?.saved ?? 0);
+  const totalReach = engRes?.reach ?? 0;
+
+  // Follower growth — diff latest vs earliest snapshot in window per network, sum deltas
+  const windowStartDate = new Date(windowStart).toISOString().slice(0, 10);
+  const followerRes = await db.prepare(
+    `SELECT network, account_ref,
+       MIN(snapshot_date) AS first_date, MAX(snapshot_date) AS last_date
+     FROM account_metrics
+     WHERE user_id = ? AND snapshot_date >= ? AND followers IS NOT NULL
+     GROUP BY network, account_ref`
+  ).bind(userId, windowStartDate).all<{ network: string; account_ref: string; first_date: string; last_date: string }>();
+
+  let followerGrowth = 0;
+  for (const row of followerRes.results ?? []) {
+    const first = await db.prepare("SELECT followers FROM account_metrics WHERE user_id = ? AND network = ? AND account_ref = ? AND snapshot_date = ?")
+      .bind(userId, row.network, row.account_ref, row.first_date).first<{ followers: number }>();
+    const last = await db.prepare("SELECT followers FROM account_metrics WHERE user_id = ? AND network = ? AND account_ref = ? AND snapshot_date = ?")
+      .bind(userId, row.network, row.account_ref, row.last_date).first<{ followers: number }>();
+    followerGrowth += (last?.followers ?? 0) - (first?.followers ?? 0);
+  }
+
+  // Weekly engagement bars for last 4 weeks (fixed — independent of period for consistent chart)
+  const weeklyEngagement: Array<{ weekStart: string; likes: number; comments: number; shares: number }> = [];
+  for (let w = 3; w >= 0; w--) {
+    const weekEnd = now - w * 7 * 24 * 3600 * 1000;
+    const weekStartMs = weekEnd - 7 * 24 * 3600 * 1000;
+    const weekRes = await db.prepare(
+      `SELECT
+         COALESCE(SUM(pm.likes), 0) AS likes,
+         COALESCE(SUM(pm.comments), 0) AS comments,
+         COALESCE(SUM(pm.shares), 0) AS shares
+       FROM post_metrics pm
+       JOIN post_targets t ON t.id = pm.target_id
+       JOIN posts p ON p.id = t.post_id
+       WHERE p.user_id = ? AND pm.snapshot_at >= ? AND pm.snapshot_at < ?`
+    ).bind(userId, weekStartMs, weekEnd).first<{ likes: number; comments: number; shares: number }>();
+    const d = new Date(weekStartMs);
+    const weekStart = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    weeklyEngagement.push({
+      weekStart,
+      likes: weekRes?.likes ?? 0,
+      comments: weekRes?.comments ?? 0,
+      shares: weekRes?.shares ?? 0,
+    });
+  }
+
+  return {
+    periodDays: days,
+    totalReach,
+    totalEngagement,
+    followerGrowth,
+    postsPublished,
+    weeklyEngagement,
+    contentMix,
+  };
+}

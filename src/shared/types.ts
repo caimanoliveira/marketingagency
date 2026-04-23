@@ -148,3 +148,37 @@ export interface InstagramConnectionStatus {
   member?: { fbUserId: string; fbUserName: string; expiresAt: number; scopes: string[] };
   accounts?: InstagramAccount[];
 }
+
+export interface AccountMetricsSnapshot {
+  date: string;
+  network: Network;
+  accountRef: string;
+  followers: number | null;
+  impressions: number | null;
+  reach: number | null;
+  profileViews: number | null;
+}
+
+export interface PostMetricsSnapshot {
+  postId: string;
+  targetId: string;
+  network: Network;
+  snapshotAt: number;
+  likes: number | null;
+  comments: number | null;
+  shares: number | null;
+  saved: number | null;
+  reach: number | null;
+  impressions: number | null;
+  engagementRate: number | null;
+}
+
+export interface AnalyticsSummary {
+  periodDays: number;
+  totalReach: number;
+  totalEngagement: number;
+  followerGrowth: number;
+  postsPublished: number;
+  weeklyEngagement: Array<{ weekStart: string; likes: number; comments: number; shares: number }>;
+  contentMix: Array<{ network: Network; count: number }>;
+}
