@@ -694,3 +694,175 @@ export async function summaryForPeriod(
     contentMix,
   };
 }
+
+export interface CompetitorRow {
+  id: string;
+  user_id: string;
+  network: string;
+  username: string;
+  display_name: string | null;
+  profile_picture_url: string | null;
+  added_at: number;
+  last_snapshot_at: number | null;
+}
+
+export interface CompetitorSnapshotRow {
+  id: string;
+  competitor_id: string;
+  snapshot_date: string;
+  followers: number | null;
+  media_count: number | null;
+  recent_avg_likes: number | null;
+  recent_avg_comments: number | null;
+  recent_posts_sampled: number | null;
+}
+
+export async function addCompetitor(
+  db: D1Database,
+  params: { id: string; userId: string; network: string; username: string; displayName: string | null; profilePictureUrl: string | null }
+): Promise<void> {
+  await db.prepare(
+    `INSERT INTO competitors (id, user_id, network, username, display_name, profile_picture_url, added_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(user_id, network, username) DO UPDATE SET
+       display_name = excluded.display_name,
+       profile_picture_url = excluded.profile_picture_url`
+  ).bind(params.id, params.userId, params.network, params.username, params.displayName, params.profilePictureUrl, Date.now()).run();
+}
+
+export async function listCompetitors(db: D1Database, userId: string): Promise<CompetitorRow[]> {
+  const { results } = await db.prepare("SELECT * FROM competitors WHERE user_id = ? ORDER BY username ASC").bind(userId).all<CompetitorRow>();
+  return results ?? [];
+}
+
+export async function getCompetitor(db: D1Database, userId: string, id: string): Promise<CompetitorRow | null> {
+  return (await db.prepare("SELECT * FROM competitors WHERE id = ? AND user_id = ?").bind(id, userId).first<CompetitorRow>()) ?? null;
+}
+
+export async function removeCompetitor(db: D1Database, userId: string, id: string): Promise<boolean> {
+  const existing = await db.prepare("SELECT id FROM competitors WHERE id = ? AND user_id = ?").bind(id, userId).first();
+  if (!existing) return false;
+  await db.prepare("DELETE FROM competitor_snapshots WHERE competitor_id = ?").bind(id).run();
+  await db.prepare("DELETE FROM competitors WHERE id = ?").bind(id).run();
+  return true;
+}
+
+export async function upsertCompetitorSnapshot(
+  db: D1Database,
+  params: { id: string; competitorId: string; snapshotDate: string; followers: number | null; mediaCount: number | null; recentAvgLikes: number | null; recentAvgComments: number | null; recentPostsSampled: number | null; extra?: unknown }
+): Promise<void> {
+  await db.prepare(
+    `INSERT INTO competitor_snapshots (id, competitor_id, snapshot_date, followers, media_count, recent_avg_likes, recent_avg_comments, recent_posts_sampled, extra_json, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(competitor_id, snapshot_date) DO UPDATE SET
+       followers = excluded.followers,
+       media_count = excluded.media_count,
+       recent_avg_likes = excluded.recent_avg_likes,
+       recent_avg_comments = excluded.recent_avg_comments,
+       recent_posts_sampled = excluded.recent_posts_sampled,
+       extra_json = excluded.extra_json`
+  ).bind(
+    params.id, params.competitorId, params.snapshotDate,
+    params.followers, params.mediaCount, params.recentAvgLikes, params.recentAvgComments, params.recentPostsSampled,
+    params.extra ? JSON.stringify(params.extra) : null,
+    Date.now()
+  ).run();
+  await db.prepare("UPDATE competitors SET last_snapshot_at = ? WHERE id = ?").bind(Date.now(), params.competitorId).run();
+}
+
+export async function listCompetitorSnapshots(
+  db: D1Database,
+  competitorId: string,
+  days: number
+): Promise<Array<{ date: string; followers: number | null; mediaCount: number | null; recentAvgLikes: number | null; recentAvgComments: number | null; recentPostsSampled: number | null }>> {
+  const windowStart = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString().slice(0, 10);
+  const { results } = await db.prepare(
+    `SELECT snapshot_date AS date, followers, media_count AS mediaCount,
+       recent_avg_likes AS recentAvgLikes, recent_avg_comments AS recentAvgComments,
+       recent_posts_sampled AS recentPostsSampled
+     FROM competitor_snapshots
+     WHERE competitor_id = ? AND snapshot_date >= ?
+     ORDER BY snapshot_date ASC`
+  ).bind(competitorId, windowStart).all<{ date: string; followers: number | null; mediaCount: number | null; recentAvgLikes: number | null; recentAvgComments: number | null; recentPostsSampled: number | null }>();
+  return results ?? [];
+}
+
+export async function topPosts(
+  db: D1Database,
+  userId: string,
+  opts: { limit: number; by: "likes" | "engagement_rate" }
+): Promise<Array<{ postId: string; body: string; network: string; publishedAt: number | null; likes: number | null; comments: number | null; shares: number | null; saved: number | null; reach: number | null; engagementRate: number | null; score: number }>> {
+  const scoreExpr = opts.by === "engagement_rate" ? "COALESCE(pm.engagement_rate, 0)" : "COALESCE(pm.likes, 0) + COALESCE(pm.comments, 0)";
+  const { results } = await db.prepare(
+    `SELECT
+       p.id AS postId, p.body, t.network, t.published_at AS publishedAt,
+       pm.likes, pm.comments, pm.shares, pm.saved, pm.reach, pm.engagement_rate AS engagementRate,
+       (${scoreExpr}) AS score
+     FROM post_targets t
+     JOIN posts p ON p.id = t.post_id
+     LEFT JOIN post_metrics pm ON pm.id = (
+       SELECT id FROM post_metrics WHERE target_id = t.id ORDER BY snapshot_at DESC LIMIT 1
+     )
+     WHERE p.user_id = ? AND t.status = 'published'
+     ORDER BY score DESC
+     LIMIT ?`
+  ).bind(userId, opts.limit).all<{ postId: string; body: string; network: string; publishedAt: number | null; likes: number | null; comments: number | null; shares: number | null; saved: number | null; reach: number | null; engagementRate: number | null; score: number }>();
+  return results ?? [];
+}
+
+/**
+ * Aggregate summary for an explicit [from, to) millisecond range.
+ * Same shape as `summaryForPeriod` but with explicit bounds — used for WoW comparisons.
+ */
+export async function summaryForRange(
+  db: D1Database,
+  userId: string,
+  fromMs: number,
+  toMs: number
+): Promise<{
+  periodDays: number;
+  totalReach: number;
+  totalEngagement: number;
+  followerGrowth: number;
+  postsPublished: number;
+  weeklyEngagement: Array<{ weekStart: string; likes: number; comments: number; shares: number }>;
+  contentMix: Array<{ network: string; count: number }>;
+}> {
+  const days = Math.max(1, Math.round((toMs - fromMs) / (24 * 3600 * 1000)));
+
+  const mixRes = await db.prepare(
+    `SELECT t.network, COUNT(DISTINCT t.post_id) AS c
+     FROM post_targets t JOIN posts p ON p.id = t.post_id
+     WHERE p.user_id = ? AND t.status = 'published' AND t.published_at >= ? AND t.published_at < ?
+     GROUP BY t.network`
+  ).bind(userId, fromMs, toMs).all<{ network: string; c: number }>();
+  const contentMix = (mixRes.results ?? []).map((r) => ({ network: r.network, count: r.c }));
+  const postsPublished = contentMix.reduce((s, r) => s + r.count, 0);
+
+  const engRes = await db.prepare(
+    `SELECT
+       COALESCE(SUM(COALESCE(pm.likes, 0)), 0) AS likes,
+       COALESCE(SUM(COALESCE(pm.comments, 0)), 0) AS comments,
+       COALESCE(SUM(COALESCE(pm.shares, 0)), 0) AS shares,
+       COALESCE(SUM(COALESCE(pm.saved, 0)), 0) AS saved,
+       COALESCE(SUM(COALESCE(pm.reach, 0)), 0) AS reach
+     FROM post_targets t JOIN posts p ON p.id = t.post_id
+     LEFT JOIN post_metrics pm ON pm.id = (
+       SELECT id FROM post_metrics WHERE target_id = t.id ORDER BY snapshot_at DESC LIMIT 1
+     )
+     WHERE p.user_id = ? AND t.status = 'published' AND t.published_at >= ? AND t.published_at < ?`
+  ).bind(userId, fromMs, toMs).first<{ likes: number; comments: number; shares: number; saved: number; reach: number }>();
+
+  const totalEngagement = (engRes?.likes ?? 0) + (engRes?.comments ?? 0) + (engRes?.shares ?? 0) + (engRes?.saved ?? 0);
+  const totalReach = engRes?.reach ?? 0;
+
+  return {
+    periodDays: days,
+    totalReach,
+    totalEngagement,
+    followerGrowth: 0,       // week 8 TODO: reuse follower-growth logic on explicit date range
+    postsPublished,
+    weeklyEngagement: [],    // not populated on explicit range — dashboard uses period-based for this
+    contentMix,
+  };
+}

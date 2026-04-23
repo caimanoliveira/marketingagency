@@ -184,3 +184,47 @@ export interface AnalyticsSummary {
   weeklyEngagement: Array<{ weekStart: string; likes: number; comments: number; shares: number }>;
   contentMix: Array<{ network: Network; count: number }>;
 }
+
+export interface Competitor {
+  id: string;
+  network: Network;
+  username: string;
+  displayName: string | null;
+  profilePictureUrl: string | null;
+  addedAt: number;
+  lastSnapshotAt: number | null;
+}
+
+export interface CompetitorSnapshotItem {
+  date: string;
+  followers: number | null;
+  mediaCount: number | null;
+  recentAvgLikes: number | null;
+  recentAvgComments: number | null;
+  recentPostsSampled: number | null;
+}
+
+export interface TopPostItem {
+  postId: string;
+  body: string;
+  network: Network;
+  publishedAt: number | null;
+  likes: number | null;
+  comments: number | null;
+  shares: number | null;
+  saved: number | null;
+  reach: number | null;
+  engagementRate: number | null;
+  score: number;
+}
+
+export interface WoWComparison {
+  current: AnalyticsSummary;
+  previous: AnalyticsSummary;
+  delta: {
+    totalReachPct: number | null;
+    totalEngagementPct: number | null;
+    followerGrowthPct: number | null;
+    postsPublishedPct: number | null;
+  };
+}
