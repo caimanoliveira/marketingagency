@@ -27,6 +27,7 @@ export function Layout() {
           <NavLink to="/posts/new">Novo post</NavLink>
           <NavLink to="/media">Biblioteca</NavLink>
           <NavLink to="/calendar">Calendário</NavLink>
+          <NavLink to="/kanban">Kanban</NavLink>
           <NavLink to="/settings">Configurações</NavLink>
         </nav>
         <div className="sidebar-foot">
