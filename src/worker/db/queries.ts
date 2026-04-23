@@ -365,6 +365,54 @@ export async function consumeOauthState(db: D1Database, state: string): Promise<
   return { userId: row.user_id, network: row.network, redirectTo: row.redirect_to };
 }
 
+export async function listPendingManual(db: D1Database, userId: string): Promise<Array<{
+  post_id: string;
+  post_body: string;
+  media_id: string | null;
+  target_id: string;
+  network: string;
+  body_override: string | null;
+  scheduled_at: number | null;
+}>> {
+  const { results } = await db.prepare(
+    `SELECT p.id AS post_id, p.body AS post_body, p.media_id, t.id AS target_id, t.network, t.body_override, t.scheduled_at
+     FROM post_targets t
+     JOIN posts p ON p.id = t.post_id
+     WHERE p.user_id = ? AND t.status = 'ready_to_post'
+     ORDER BY t.scheduled_at ASC
+     LIMIT 100`
+  ).bind(userId).all<{
+    post_id: string;
+    post_body: string;
+    media_id: string | null;
+    target_id: string;
+    network: string;
+    body_override: string | null;
+    scheduled_at: number | null;
+  }>();
+  return results ?? [];
+}
+
+export async function markTargetPublished(
+  db: D1Database,
+  userId: string,
+  postId: string,
+  targetId: string,
+  externalUrl: string | null
+): Promise<boolean> {
+  // Verify ownership
+  const check = await db.prepare(
+    "SELECT 1 FROM post_targets t JOIN posts p ON p.id = t.post_id WHERE t.id = ? AND p.user_id = ? AND t.post_id = ?"
+  ).bind(targetId, userId, postId).first();
+  if (!check) return false;
+  const now = Date.now();
+  await db.prepare(
+    "UPDATE post_targets SET status = 'published', external_id = ?, published_at = ? WHERE id = ?"
+  ).bind(externalUrl, now, targetId).run();
+  // Don't force post status to 'published' — other targets may still be pending
+  return true;
+}
+
 export async function logAiGeneration(
   db: D1Database,
   params: {

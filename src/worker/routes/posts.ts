@@ -18,6 +18,8 @@ import {
   setPostTargets,
   updateTarget,
   getMediaById,
+  listPendingManual,
+  markTargetPublished,
   type PostRow,
   type PostTargetRow,
 } from "../db/queries";
@@ -211,4 +213,54 @@ posts.patch("/:id/targets/:network", async (c) => {
   await updateTarget(c.env.DB, id, network.data, parsed);
   const updated = await getPostById(c.env.DB, userId, id);
   return c.json(await hydratePost(c.env, updated!));
+});
+
+// Pending manual publish (currently TikTok only)
+posts.get("/pending-manual", async (c) => {
+  const userId = c.get("userId");
+  const rows = await listPendingManual(c.env.DB, userId);
+  // Enrich with media URL
+  const items = await Promise.all(rows.map(async (r) => {
+    let mediaUrl: string | null = null;
+    let mediaMime: string | null = null;
+    if (r.media_id) {
+      const m = await getMediaById(c.env.DB, userId, r.media_id);
+      if (m) {
+        mediaUrl = await presignGet(
+          { accountId: c.env.R2_ACCOUNT_ID, bucket: c.env.R2_BUCKET, accessKeyId: c.env.R2_ACCESS_KEY_ID, secretAccessKey: c.env.R2_SECRET_ACCESS_KEY },
+          m.r2_key,
+          3600
+        );
+        mediaMime = m.mime_type;
+      }
+    }
+    return {
+      postId: r.post_id,
+      targetId: r.target_id,
+      network: r.network,
+      body: r.body_override ?? r.post_body,
+      mediaUrl,
+      mediaMime,
+      scheduledAt: r.scheduled_at,
+    };
+  }));
+  return c.json({ items });
+});
+
+// Mark a target as published manually
+posts.post("/:id/targets/:network/mark-published", async (c) => {
+  const userId = c.get("userId");
+  const id = c.req.param("id");
+  const network = c.req.param("network");
+  const body = await c.req.json().catch(() => ({})) as { externalUrl?: string };
+
+  const post = await getPostById(c.env.DB, userId, id);
+  if (!post) return c.json({ error: "not_found" }, 404);
+  const targets = await listTargetsForPost(c.env.DB, id);
+  const target = targets.find((t) => t.network === network);
+  if (!target) return c.json({ error: "target_not_selected" }, 400);
+
+  const ok = await markTargetPublished(c.env.DB, userId, id, target.id, body.externalUrl ?? null);
+  if (!ok) return c.json({ error: "not_found" }, 404);
+  return c.json({ ok: true });
 });

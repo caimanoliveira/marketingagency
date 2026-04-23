@@ -2,7 +2,24 @@ import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { NETWORKS } from "../lib/networks";
+import { PendingManualCard } from "../components/PendingManualCard";
 import type { PostListItem, Network } from "../../shared/types";
+
+function PendingManualSection() {
+  const { data } = useQuery({ queryKey: ["pending-manual"], queryFn: api.listPendingManual });
+  if (!data?.items.length) return null;
+  return (
+    <div style={{ marginBottom: 32 }}>
+      <h2 style={{ fontSize: 16, color: "#ff9d4a" }}>Pendentes manuais ({data.items.length})</h2>
+      <p style={{ color: "#888", fontSize: 13, marginTop: 0 }}>
+        Esses posts chegaram na hora agendada. Copia, publica manualmente no app da rede, e marca como publicado.
+      </p>
+      {data.items.map((item) => (
+        <PendingManualCard key={item.targetId} item={item} />
+      ))}
+    </div>
+  );
+}
 
 function formatDate(ms: number) {
   return new Date(ms).toLocaleString("pt-BR", {
@@ -42,6 +59,7 @@ export function PostsList() {
 
   return (
     <div>
+      <PendingManualSection />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <h1>Posts</h1>
         <button className="btn-primary" onClick={() => createMutation.mutate()}>

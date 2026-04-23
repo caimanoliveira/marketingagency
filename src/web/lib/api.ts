@@ -67,6 +67,20 @@ export const api = {
   publishNow: (postId: string, network: Network) =>
     json<{ ok: true; externalId: string }>(`/api/publish/${postId}/${network}`, "POST"),
 
+  listPendingManual: () => req<{
+    items: Array<{
+      postId: string;
+      targetId: string;
+      network: string;
+      body: string;
+      mediaUrl: string | null;
+      mediaMime: string | null;
+      scheduledAt: number | null;
+    }>;
+  }>("/api/posts/pending-manual"),
+  markPublished: (postId: string, network: string, externalUrl: string | null) =>
+    json<{ ok: true }>(`/api/posts/${postId}/targets/${network}/mark-published`, "POST", { externalUrl }),
+
   getLinkedIn: () => req<{
     connected: boolean;
     member?: { memberId: string; memberName: string; expiresAt: number; scopes: string[] };

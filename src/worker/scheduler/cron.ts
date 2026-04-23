@@ -13,11 +13,20 @@ export async function scanAndEnqueue(env: Env): Promise<number> {
 
   let enqueued = 0;
   for (const row of results ?? []) {
-    // Move status to 'publishing' atomically so the cron doesn't pick it up again
+    if (row.network === "tiktok") {
+      // TikTok: no auto publish, move to ready_to_post for manual action
+      const upd = await env.DB.prepare(
+        "UPDATE post_targets SET status = 'ready_to_post' WHERE id = ? AND status = 'scheduled'"
+      ).bind(row.target_id).run();
+      if (upd.meta.changes > 0) enqueued++;
+      continue;
+    }
+
+    // Auto-publish networks (LinkedIn, Instagram): move to publishing and enqueue
     const upd = await env.DB.prepare(
       "UPDATE post_targets SET status = 'publishing' WHERE id = ? AND status = 'scheduled'"
     ).bind(row.target_id).run();
-    if (upd.meta.changes === 0) continue; // already picked up
+    if (upd.meta.changes === 0) continue;
 
     const msg: PublishJob = {
       postId: row.post_id,
