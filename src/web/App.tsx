@@ -10,6 +10,7 @@ import { Settings } from "./pages/Settings";
 import { Calendar } from "./pages/Calendar";
 import { Kanban } from "./pages/Kanban";
 import { Analytics } from "./pages/Analytics";
+import { Benchmarks } from "./pages/Benchmarks";
 import "./styles.css";
 
 export function App() {
@@ -27,6 +28,7 @@ export function App() {
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/kanban" element={<Kanban />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/benchmarks" element={<Benchmarks />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
         </Routes>

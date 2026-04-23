@@ -5,6 +5,8 @@ import { api } from "../lib/api";
 import { NETWORKS } from "../lib/networks";
 import { KpiCard, formatNumber } from "../components/KpiCard";
 import { SkeletonRow } from "../components/Skeleton";
+import { WoWChips } from "../components/WoWChips";
+import { TopPostsCard } from "../components/TopPostsCard";
 
 type Period = 7 | 30 | 90;
 
@@ -54,27 +56,36 @@ export function Analytics() {
       {!isLoading && data && (
         <>
           <div className="kpi-row">
-            <KpiCard
-              label="Alcance"
-              value={formatNumber(data.totalReach)}
-              hint={`últimos ${data.periodDays} dias`}
-            />
-            <KpiCard
-              label="Engajamento"
-              value={formatNumber(data.totalEngagement)}
-              hint="likes + comentários + shares + saves"
-            />
+            <div>
+              <KpiCard
+                label="Alcance"
+                value={formatNumber(data.totalReach)}
+                hint={`últimos ${data.periodDays} dias`}
+              />
+              <div style={{ fontSize: 12, color: "#888", marginTop: 4, paddingLeft: 4 }}><WoWChips field="reach" /></div>
+            </div>
+            <div>
+              <KpiCard
+                label="Engajamento"
+                value={formatNumber(data.totalEngagement)}
+                hint="likes + comentários + shares + saves"
+              />
+              <div style={{ fontSize: 12, color: "#888", marginTop: 4, paddingLeft: 4 }}><WoWChips field="engagement" /></div>
+            </div>
             <KpiCard
               label="Crescimento"
               value={`${data.followerGrowth >= 0 ? "+" : ""}${formatNumber(data.followerGrowth)}`}
               deltaPositive={data.followerGrowth >= 0}
               hint="seguidores"
             />
-            <KpiCard
-              label="Posts publicados"
-              value={data.postsPublished}
-              hint={`no período de ${data.periodDays}d`}
-            />
+            <div>
+              <KpiCard
+                label="Posts publicados"
+                value={data.postsPublished}
+                hint={`no período de ${data.periodDays}d`}
+              />
+              <div style={{ fontSize: 12, color: "#888", marginTop: 4, paddingLeft: 4 }}><WoWChips field="posts" /></div>
+            </div>
           </div>
 
           <div className="charts-row">
@@ -129,6 +140,8 @@ export function Analytics() {
               Ainda não há dados. Publique alguns posts e clique em "🔄 Coletar agora" pra buscar métricas.
             </p>
           )}
+
+          <TopPostsCard />
         </>
       )}
     </div>

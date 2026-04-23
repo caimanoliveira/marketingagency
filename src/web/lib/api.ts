@@ -157,4 +157,31 @@ export const api = {
       engagementRate: number | null;
     }>;
   }>("/api/analytics/post-performance"),
+
+  listCompetitors: () => req<{
+    items: Array<{
+      id: string;
+      network: string;
+      username: string;
+      displayName: string | null;
+      profilePictureUrl: string | null;
+      addedAt: number;
+      lastSnapshotAt: number | null;
+    }>;
+  }>("/api/competitors"),
+  addCompetitor: (username: string) => json<{
+    id: string; network: string; username: string; displayName: string | null; profilePictureUrl: string | null; addedAt: number; lastSnapshotAt: number | null;
+  }>("/api/competitors", "POST", { username }),
+  removeCompetitor: (id: string) => json<{ ok: true }>(`/api/competitors/${id}`, "DELETE"),
+  competitorSnapshots: (id: string, days = 30) => req<{
+    items: Array<{ date: string; followers: number | null; mediaCount: number | null; recentAvgLikes: number | null; recentAvgComments: number | null; recentPostsSampled: number | null }>;
+  }>(`/api/competitors/${id}/snapshots?days=${days}`),
+  topPosts: (by: "likes" | "engagement_rate" = "likes", limit = 10) => req<{
+    items: Array<{ postId: string; body: string; network: string; publishedAt: number | null; likes: number | null; comments: number | null; shares: number | null; saved: number | null; reach: number | null; engagementRate: number | null; score: number }>;
+  }>(`/api/analytics/top-posts?by=${by}&limit=${limit}`),
+  wow: () => req<{
+    current: { totalReach: number; totalEngagement: number; followerGrowth: number; postsPublished: number };
+    previous: { totalReach: number; totalEngagement: number; followerGrowth: number; postsPublished: number };
+    delta: { totalReachPct: number | null; totalEngagementPct: number | null; followerGrowthPct: number | null; postsPublishedPct: number | null };
+  }>("/api/analytics/wow"),
 };

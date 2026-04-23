@@ -31,6 +31,7 @@ export function Layout() {
           <NavLink to="/calendar">Calendário</NavLink>
           <NavLink to="/kanban">Kanban</NavLink>
           <NavLink to="/analytics">Analytics</NavLink>
+          <NavLink to="/benchmarks">Benchmarks</NavLink>
           <NavLink to="/settings">Configurações</NavLink>
         </nav>
         <div className="sidebar-foot">
