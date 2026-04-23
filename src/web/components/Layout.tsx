@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { FailureBanner } from "./FailureBanner";
+import { Skeleton } from "./Skeleton";
 
 export function Layout() {
   const nav = useNavigate();
@@ -17,7 +18,7 @@ export function Layout() {
     nav("/login");
   }
 
-  if (!data) return <div className="wrap">Carregando...</div>;
+  if (!data) return <div className="wrap"><Skeleton width="60%" height="32px" /></div>;
 
   return (
     <div className="app">

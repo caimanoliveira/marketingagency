@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { CalendarGrid } from "../components/CalendarGrid";
+import { SkeletonRow } from "../components/Skeleton";
 
 const MONTH_NAMES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -41,7 +42,7 @@ export function Calendar() {
           <button className="btn-secondary" onClick={next}>Próximo →</button>
         </div>
       </div>
-      {isLoading && <p>Carregando...</p>}
+      {isLoading && <SkeletonRow count={6} />}
       {!isLoading && (
         <CalendarGrid
           year={year}

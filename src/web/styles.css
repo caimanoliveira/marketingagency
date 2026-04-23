@@ -125,3 +125,24 @@ button:disabled { opacity: 0.5; cursor: wait; }
 .failure-row-info { flex: 1; min-width: 0; }
 .failure-net-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; color: white; font-weight: 600; }
 .failure-row-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+@keyframes shimmer {
+  0%   { background-position: -800px 0; }
+  100% { background-position:  800px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #14141c 0px, #1f1f2a 200px, #14141c 400px);
+  background-size: 800px;
+  border-radius: 6px;
+  animation: shimmer 1.4s infinite linear;
+}
+
+.empty-state {
+  text-align: center; padding: 48px 24px; color: #888;
+  background: #0d0d12; border: 1px dashed #2a2a36; border-radius: 12px;
+  max-width: 480px; margin: 32px auto;
+}
+.empty-state-icon { font-size: 32px; margin-bottom: 12px; }
+.empty-state-title { font-size: 16px; color: #ddd; margin: 0 0 8px; }
+.empty-state-desc { font-size: 13px; color: #888; margin: 0 0 16px; }
+.empty-state-action a, .empty-state-action button { display: inline-block; }

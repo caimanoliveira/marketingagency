@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { MediaUploader } from "../components/MediaUploader";
+import { EmptyState } from "../components/EmptyState";
 import type { Media } from "../../shared/types";
 
 export function MediaPage() {
@@ -17,7 +18,13 @@ export function MediaPage() {
       <h1>Biblioteca de mídia</h1>
       <MediaUploader />
       <div style={{ marginTop: 24 }}>
-        {(data?.items.length ?? 0) === 0 && <p style={{ color: "#888" }}>Nenhuma mídia ainda.</p>}
+        {(data?.items.length ?? 0) === 0 && (
+          <EmptyState
+            icon="🖼️"
+            title="Biblioteca vazia"
+            description="Arraste uma imagem ou vídeo no uploader acima pra começar."
+          />
+        )}
         <div className="media-grid">
           {(data?.items ?? []).map((m: Media) => (
             <div key={m.id} className="media-tile">

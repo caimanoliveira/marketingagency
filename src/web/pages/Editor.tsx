@@ -10,6 +10,7 @@ import { AIAssistant } from "../components/AIAssistant";
 import { Schedule } from "../components/Schedule";
 import { LinkedInTargetPicker } from "../components/LinkedInTargetPicker";
 import { InstagramTargetPicker } from "../components/InstagramTargetPicker";
+import { SkeletonRow } from "../components/Skeleton";
 import type { Network, Post } from "../../shared/types";
 
 export function Editor() {
@@ -102,7 +103,7 @@ export function Editor() {
       </div>
     );
   }
-  if (isLoading) return <p>Carregando...</p>;
+  if (isLoading) return <SkeletonRow count={3} />;
 
   const media = post?.media ?? null;
 

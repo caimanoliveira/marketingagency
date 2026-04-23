@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { KanbanBoard } from "../components/KanbanBoard";
+import { SkeletonRow } from "../components/Skeleton";
 
 export function Kanban() {
   const { data, isLoading } = useQuery({ queryKey: ["posts"], queryFn: api.listPosts });
@@ -13,7 +14,7 @@ export function Kanban() {
           Arraste cards entre colunas pra mudar status. Duplo-clique abre o editor.
         </p>
       </div>
-      {isLoading && <p>Carregando...</p>}
+      {isLoading && <SkeletonRow count={4} />}
       {!isLoading && <KanbanBoard posts={data?.items ?? []} />}
     </div>
   );

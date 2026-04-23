@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { NETWORKS } from "../lib/networks";
 import { PendingManualCard } from "../components/PendingManualCard";
+import { SkeletonRow } from "../components/Skeleton";
+import { EmptyState } from "../components/EmptyState";
 import type { PostListItem, Network } from "../../shared/types";
 
 function PendingManualSection() {
@@ -67,9 +69,14 @@ export function PostsList() {
         </button>
       </div>
 
-      {isLoading && <p>Carregando...</p>}
+      {isLoading && <SkeletonRow count={4} />}
       {!isLoading && (data?.items.length ?? 0) === 0 && (
-        <p style={{ color: "#888" }}>Nenhum post ainda. Clique em "+ Novo post" pra começar.</p>
+        <EmptyState
+          icon="📝"
+          title="Nenhum post ainda"
+          description="Clique em '+ Novo post' pra começar a criar."
+          action={<button className="btn-primary" onClick={() => createMutation.mutate()}>+ Novo post</button>}
+        />
       )}
 
       {(data?.items ?? []).length > 0 && (
