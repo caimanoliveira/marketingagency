@@ -7,6 +7,7 @@ import { PostsList } from "./pages/PostsList";
 import { Editor } from "./pages/Editor";
 import { MediaPage } from "./pages/Media";
 import { Settings } from "./pages/Settings";
+import { Calendar } from "./pages/Calendar";
 import "./styles.css";
 
 export function App() {
@@ -21,6 +22,7 @@ export function App() {
             <Route path="/posts/new" element={<Editor />} />
             <Route path="/posts/:id" element={<Editor />} />
             <Route path="/media" element={<MediaPage />} />
+            <Route path="/calendar" element={<Calendar />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
         </Routes>

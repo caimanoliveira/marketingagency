@@ -96,4 +96,20 @@ export const api = {
   }>("/api/connections/instagram"),
   refreshInstagram: () => json<{ ok: true; count: number }>("/api/connections/instagram/refresh", "POST"),
   disconnectInstagram: () => json<{ ok: true }>("/api/connections/instagram", "DELETE"),
+
+  postsByMonth: (year: number, month0: number) => {
+    const from = new Date(year, month0, 1).getTime();
+    const to = new Date(year, month0 + 1, 1).getTime();
+    return req<{
+      items: Array<{
+        id: string;
+        body: string;
+        status: string;
+        mediaId: string | null;
+        networks: string[];
+        scheduledAt: number;
+        updatedAt: number;
+      }>;
+    }>(`/api/posts/by-month?from=${from}&to=${to}`);
+  },
 };
