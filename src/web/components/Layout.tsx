@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
+import { FailureBanner } from "./FailureBanner";
 
 export function Layout() {
   const nav = useNavigate();
@@ -36,6 +37,7 @@ export function Layout() {
         </div>
       </aside>
       <main className="content">
+        <FailureBanner />
         <Outlet />
       </main>
     </div>

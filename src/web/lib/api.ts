@@ -115,4 +115,17 @@ export const api = {
       }>;
     }>(`/api/posts/by-month?from=${from}&to=${to}`);
   },
+
+  listFailures: () => req<{
+    items: Array<{
+      postId: string;
+      postBody: string;
+      network: string;
+      lastError: string | null;
+      attempts: number;
+      scheduledAt: number | null;
+    }>;
+  }>("/api/posts/failures"),
+  retryTarget: (postId: string, network: string) =>
+    json<{ ok: true }>(`/api/posts/${postId}/targets/${network}/retry`, "POST"),
 };
