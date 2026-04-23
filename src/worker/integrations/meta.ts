@@ -225,3 +225,65 @@ export async function fetchIgPostMetrics(
   }
   return out;
 }
+
+export interface CompetitorBasicInfo {
+  username: string;
+  displayName: string | null;
+  profilePictureUrl: string | null;
+  followers: number | null;
+  mediaCount: number | null;
+  recentAvgLikes: number | null;
+  recentAvgComments: number | null;
+  recentPostsSampled: number;
+}
+
+/**
+ * Uses Instagram Graph API `business_discovery` — requires an authenticated IG Business
+ * account to query ANY other IG Business account by username. Works with page access token.
+ *
+ * Returns null if the target is not found / not a Business account / API error.
+ */
+export async function fetchCompetitorBasic(
+  myIgUserId: string,
+  pageAccessToken: string,
+  targetUsername: string
+): Promise<CompetitorBasicInfo | null> {
+  const fields = `business_discovery.username(${targetUsername}){username,name,profile_picture_url,followers_count,media_count,media.limit(9){like_count,comments_count}}`;
+  const url = new URL(`${GRAPH_V20}/${myIgUserId}`);
+  url.searchParams.set("fields", fields);
+  url.searchParams.set("access_token", pageAccessToken);
+  const res = await fetch(url.toString());
+  if (!res.ok) return null;
+  const body = await res.json() as {
+    business_discovery?: {
+      username?: string;
+      name?: string;
+      profile_picture_url?: string;
+      followers_count?: number;
+      media_count?: number;
+      media?: { data?: Array<{ like_count?: number; comments_count?: number }> };
+    };
+  };
+  const bd = body.business_discovery;
+  if (!bd) return null;
+  const mediaItems = bd.media?.data ?? [];
+  const sampled = mediaItems.length;
+  let avgLikes: number | null = null;
+  let avgComments: number | null = null;
+  if (sampled > 0) {
+    const sumLikes = mediaItems.reduce((s, m) => s + (m.like_count ?? 0), 0);
+    const sumComments = mediaItems.reduce((s, m) => s + (m.comments_count ?? 0), 0);
+    avgLikes = sumLikes / sampled;
+    avgComments = sumComments / sampled;
+  }
+  return {
+    username: bd.username ?? targetUsername,
+    displayName: bd.name ?? null,
+    profilePictureUrl: bd.profile_picture_url ?? null,
+    followers: bd.followers_count ?? null,
+    mediaCount: bd.media_count ?? null,
+    recentAvgLikes: avgLikes,
+    recentAvgComments: avgComments,
+    recentPostsSampled: sampled,
+  };
+}

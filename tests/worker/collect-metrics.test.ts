@@ -13,6 +13,8 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS instagram_accounts (id TEXT PRIMARY KEY, connection_id TEXT NOT NULL, ig_user_id TEXT NOT NULL, ig_username TEXT NOT NULL, fb_page_id TEXT NOT NULL, fb_page_name TEXT NOT NULL, fb_page_access_token TEXT NOT NULL, profile_picture_url TEXT, created_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS account_metrics (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, network TEXT NOT NULL, account_ref TEXT NOT NULL, snapshot_date TEXT NOT NULL, followers INTEGER, impressions INTEGER, reach INTEGER, profile_views INTEGER, extra_json TEXT, created_at INTEGER NOT NULL, UNIQUE(user_id, network, account_ref, snapshot_date))`,
   `CREATE TABLE IF NOT EXISTS post_metrics (id TEXT PRIMARY KEY, post_id TEXT NOT NULL, target_id TEXT NOT NULL, network TEXT NOT NULL, snapshot_at INTEGER NOT NULL, likes INTEGER, comments INTEGER, shares INTEGER, saved INTEGER, reach INTEGER, impressions INTEGER, engagement_rate REAL, extra_json TEXT, created_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS competitors (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, network TEXT NOT NULL, username TEXT NOT NULL, display_name TEXT, profile_picture_url TEXT, added_at INTEGER NOT NULL, last_snapshot_at INTEGER, UNIQUE(user_id, network, username))`,
+  `CREATE TABLE IF NOT EXISTS competitor_snapshots (id TEXT PRIMARY KEY, competitor_id TEXT NOT NULL, snapshot_date TEXT NOT NULL, followers INTEGER, media_count INTEGER, recent_avg_likes REAL, recent_avg_comments REAL, recent_posts_sampled INTEGER, extra_json TEXT, created_at INTEGER NOT NULL, UNIQUE(competitor_id, snapshot_date))`,
 ];
 
 beforeAll(async () => {

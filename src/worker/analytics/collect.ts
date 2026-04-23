@@ -1,6 +1,6 @@
 import type { Env } from "../index";
-import { getLinkedInConnection, getMetaConnection, upsertAccountMetrics, insertPostMetrics } from "../db/queries";
-import { fetchIgAccountMetrics, fetchIgPostMetrics } from "../integrations/meta";
+import { getLinkedInConnection, getMetaConnection, upsertAccountMetrics, insertPostMetrics, upsertCompetitorSnapshot } from "../db/queries";
+import { fetchIgAccountMetrics, fetchIgPostMetrics, fetchCompetitorBasic } from "../integrations/meta";
 import { fetchLinkedInPostMetrics } from "../integrations/linkedin";
 
 function randomId(prefix: string) {
@@ -96,6 +96,40 @@ async function collectForUser(env: Env, userId: string): Promise<void> {
           });
         } catch (e) {
           console.error(`ig post metrics ${p.external_id}`, e);
+        }
+      }
+    }
+
+    // --- Competitors (uses first IG account's page token) ---
+    if ((igAccounts?.length ?? 0) > 0) {
+      const firstAcct = igAccounts[0];
+      const { results: comps } = await env.DB.prepare(
+        "SELECT id, username FROM competitors WHERE user_id = ? AND network = 'instagram'"
+      ).bind(userId).all<{ id: string; username: string }>();
+      const snapshotDateStr = today();
+      for (const comp of comps ?? []) {
+        try {
+          const info = await fetchCompetitorBasic(firstAcct.ig_user_id, firstAcct.fb_page_access_token, comp.username);
+          if (info) {
+            await upsertCompetitorSnapshot(env.DB, {
+              id: randomId("cs"),
+              competitorId: comp.id,
+              snapshotDate: snapshotDateStr,
+              followers: info.followers,
+              mediaCount: info.mediaCount,
+              recentAvgLikes: info.recentAvgLikes,
+              recentAvgComments: info.recentAvgComments,
+              recentPostsSampled: info.recentPostsSampled,
+            });
+            // Enrich competitor profile (name + picture) when available
+            if (info.displayName || info.profilePictureUrl) {
+              await env.DB.prepare(
+                "UPDATE competitors SET display_name = COALESCE(?, display_name), profile_picture_url = COALESCE(?, profile_picture_url) WHERE id = ?"
+              ).bind(info.displayName, info.profilePictureUrl, comp.id).run();
+            }
+          }
+        } catch (e) {
+          console.error(`competitor ${comp.username}`, e);
         }
       }
     }
