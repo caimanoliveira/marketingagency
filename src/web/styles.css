@@ -146,3 +146,21 @@ button:disabled { opacity: 0.5; cursor: wait; }
 .empty-state-title { font-size: 16px; color: #ddd; margin: 0 0 8px; }
 .empty-state-desc { font-size: 13px; color: #888; margin: 0 0 16px; }
 .empty-state-action a, .empty-state-action button { display: inline-block; }
+
+.period-toggle { display: inline-flex; background: #111118; border: 1px solid #1f1f28; border-radius: 8px; overflow: hidden; }
+.period-toggle button { background: transparent; border: 0; color: #aaa; padding: 6px 12px; font-size: 12px; cursor: pointer; font-weight: 500; }
+.period-toggle button.active { background: #6e56cf; color: white; }
+
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.kpi-card { background: #111118; border: 1px solid #1f1f28; border-radius: 12px; padding: 16px; }
+.kpi-label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.kpi-value { font-size: 28px; font-weight: 600; color: #eee; }
+.kpi-delta { font-size: 12px; margin-top: 4px; }
+.kpi-delta-pos { color: #7ecf8a; }
+.kpi-delta-neg { color: #ff6b6b; }
+.kpi-hint { font-size: 11px; color: #666; margin-top: 4px; }
+
+.charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+@media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } }
+.chart-card { background: #111118; border: 1px solid #1f1f28; border-radius: 12px; padding: 16px; }
+.chart-card h3 { margin-top: 0; font-size: 14px; color: #ddd; margin-bottom: 12px; }

@@ -9,6 +9,7 @@ import { MediaPage } from "./pages/Media";
 import { Settings } from "./pages/Settings";
 import { Calendar } from "./pages/Calendar";
 import { Kanban } from "./pages/Kanban";
+import { Analytics } from "./pages/Analytics";
 import "./styles.css";
 
 export function App() {
@@ -25,6 +26,7 @@ export function App() {
             <Route path="/media" element={<MediaPage />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/kanban" element={<Kanban />} />
+            <Route path="/analytics" element={<Analytics />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
         </Routes>

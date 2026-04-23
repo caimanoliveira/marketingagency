@@ -128,4 +128,33 @@ export const api = {
   }>("/api/posts/failures"),
   retryTarget: (postId: string, network: string) =>
     json<{ ok: true }>(`/api/posts/${postId}/targets/${network}/retry`, "POST"),
+
+  analyticsSummary: (period: 7 | 30 | 90) =>
+    req<{
+      periodDays: number;
+      totalReach: number;
+      totalEngagement: number;
+      followerGrowth: number;
+      postsPublished: number;
+      weeklyEngagement: Array<{ weekStart: string; likes: number; comments: number; shares: number }>;
+      contentMix: Array<{ network: string; count: number }>;
+    }>(`/api/analytics/summary?period=${period}`),
+
+  collectMetricsNow: () => json<{ usersProcessed: number; errors: string[] }>("/api/analytics/collect-now", "POST"),
+
+  postPerformance: () => req<{
+    items: Array<{
+      postId: string;
+      body: string;
+      network: string;
+      publishedAt: number | null;
+      likes: number | null;
+      comments: number | null;
+      shares: number | null;
+      saved: number | null;
+      reach: number | null;
+      impressions: number | null;
+      engagementRate: number | null;
+    }>;
+  }>("/api/analytics/post-performance"),
 };
