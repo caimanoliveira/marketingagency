@@ -140,19 +140,28 @@ export async function deletePost(db: D1Database, userId: string, id: string): Pr
   return true;
 }
 
-export async function listPosts(db: D1Database, userId: string): Promise<Array<PostRow & { networks: string }>> {
+export async function listPosts(
+  db: D1Database,
+  userId: string
+): Promise<Array<PostRow & { networks: string; total_likes: number | null; total_comments: number | null }>> {
   const { results } = await db
     .prepare(
-      `SELECT p.*, COALESCE(GROUP_CONCAT(t.network), '') AS networks
+      `SELECT p.*,
+         COALESCE(GROUP_CONCAT(DISTINCT t.network), '') AS networks,
+         SUM(lm.likes) AS total_likes,
+         SUM(lm.comments) AS total_comments
        FROM posts p
        LEFT JOIN post_targets t ON t.post_id = p.id
+       LEFT JOIN post_metrics lm ON lm.id = (
+         SELECT id FROM post_metrics WHERE target_id = t.id ORDER BY snapshot_at DESC LIMIT 1
+       )
        WHERE p.user_id = ?
        GROUP BY p.id
        ORDER BY p.updated_at DESC
        LIMIT 200`
     )
     .bind(userId)
-    .all<PostRow & { networks: string }>();
+    .all<PostRow & { networks: string; total_likes: number | null; total_comments: number | null }>();
   return results ?? [];
 }
 

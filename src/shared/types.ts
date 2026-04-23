@@ -52,6 +52,8 @@ export interface PostListItem {
   mediaThumb: string | null;
   networks: Network[];
   updatedAt: number;
+  totalLikes: number | null;
+  totalComments: number | null;
 }
 
 export interface CreatePostRequest {

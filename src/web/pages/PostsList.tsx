@@ -87,6 +87,7 @@ export function PostsList() {
               <th>Copy</th>
               <th style={{ width: 160 }}>Redes</th>
               <th style={{ width: 100 }}>Status</th>
+              <th style={{ width: 100 }}>Performance</th>
               <th style={{ width: 160 }}>Atualizado</th>
               <th style={{ width: 100 }}></th>
             </tr>
@@ -125,6 +126,14 @@ export function PostsList() {
                 </td>
                 <td>
                   <span className={`status-${p.status}`}>{p.status}</span>
+                </td>
+                <td style={{ fontSize: 12, color: "#888" }}>
+                  {p.totalLikes !== null && p.totalLikes !== undefined ? (
+                    <>
+                      <span title="likes">❤️ {p.totalLikes}</span>
+                      <span style={{ marginLeft: 8 }} title="comments">💬 {p.totalComments ?? 0}</span>
+                    </>
+                  ) : "—"}
                 </td>
                 <td style={{ color: "#888", fontSize: 12 }}>{formatDate(p.updatedAt)}</td>
                 <td>

@@ -146,6 +146,8 @@ posts.get("/", async (c) => {
         mediaThumb: thumb,
         networks: (r.networks ? r.networks.split(",") : []) as Network[],
         updatedAt: r.updated_at,
+        totalLikes: r.total_likes,
+        totalComments: r.total_comments,
       };
     })
   );
