@@ -20,6 +20,9 @@ import {
   getMediaById,
   listPendingManual,
   markTargetPublished,
+  listPostsByMonth,
+  listFailures,
+  resetTargetForRetry,
   type PostRow,
   type PostTargetRow,
 } from "../db/queries";
@@ -149,6 +152,79 @@ posts.get("/", async (c) => {
   return c.json({ items });
 });
 
+// Calendar view — must be before /:id
+posts.get("/by-month", async (c) => {
+  const userId = c.get("userId");
+  const fromStr = c.req.query("from");
+  const toStr = c.req.query("to");
+  if (!fromStr || !toStr) return c.json({ error: "missing_range" }, 400);
+  const from = parseInt(fromStr, 10);
+  const to = parseInt(toStr, 10);
+  if (!Number.isFinite(from) || !Number.isFinite(to) || from >= to) {
+    return c.json({ error: "invalid_range" }, 400);
+  }
+  const rows = await listPostsByMonth(c.env.DB, userId, from, to);
+  return c.json({
+    items: rows.map((r) => ({
+      id: r.id,
+      body: r.body,
+      status: r.status,
+      mediaId: r.media_id,
+      networks: r.networks ? r.networks.split(",") : [],
+      scheduledAt: r.scheduled_at,
+      updatedAt: r.updated_at,
+    })),
+  });
+});
+
+// Failures list — must be before /:id
+posts.get("/failures", async (c) => {
+  const userId = c.get("userId");
+  const rows = await listFailures(c.env.DB, userId);
+  return c.json({
+    items: rows.map((r) => ({
+      postId: r.post_id,
+      postBody: r.post_body,
+      network: r.network,
+      lastError: r.last_error,
+      attempts: r.attempts,
+      scheduledAt: r.scheduled_at,
+    })),
+  });
+});
+
+// Pending manual publish (currently TikTok only) — must be before /:id
+posts.get("/pending-manual", async (c) => {
+  const userId = c.get("userId");
+  const rows = await listPendingManual(c.env.DB, userId);
+  // Enrich with media URL
+  const items = await Promise.all(rows.map(async (r) => {
+    let mediaUrl: string | null = null;
+    let mediaMime: string | null = null;
+    if (r.media_id) {
+      const m = await getMediaById(c.env.DB, userId, r.media_id);
+      if (m) {
+        mediaUrl = await presignGet(
+          { accountId: c.env.R2_ACCOUNT_ID, bucket: c.env.R2_BUCKET, accessKeyId: c.env.R2_ACCESS_KEY_ID, secretAccessKey: c.env.R2_SECRET_ACCESS_KEY },
+          m.r2_key,
+          3600
+        );
+        mediaMime = m.mime_type;
+      }
+    }
+    return {
+      postId: r.post_id,
+      targetId: r.target_id,
+      network: r.network,
+      body: r.body_override ?? r.post_body,
+      mediaUrl,
+      mediaMime,
+      scheduledAt: r.scheduled_at,
+    };
+  }));
+  return c.json({ items });
+});
+
 posts.get("/:id", async (c) => {
   const userId = c.get("userId");
   const row = await getPostById(c.env.DB, userId, c.req.param("id"));
@@ -215,38 +291,6 @@ posts.patch("/:id/targets/:network", async (c) => {
   return c.json(await hydratePost(c.env, updated!));
 });
 
-// Pending manual publish (currently TikTok only)
-posts.get("/pending-manual", async (c) => {
-  const userId = c.get("userId");
-  const rows = await listPendingManual(c.env.DB, userId);
-  // Enrich with media URL
-  const items = await Promise.all(rows.map(async (r) => {
-    let mediaUrl: string | null = null;
-    let mediaMime: string | null = null;
-    if (r.media_id) {
-      const m = await getMediaById(c.env.DB, userId, r.media_id);
-      if (m) {
-        mediaUrl = await presignGet(
-          { accountId: c.env.R2_ACCOUNT_ID, bucket: c.env.R2_BUCKET, accessKeyId: c.env.R2_ACCESS_KEY_ID, secretAccessKey: c.env.R2_SECRET_ACCESS_KEY },
-          m.r2_key,
-          3600
-        );
-        mediaMime = m.mime_type;
-      }
-    }
-    return {
-      postId: r.post_id,
-      targetId: r.target_id,
-      network: r.network,
-      body: r.body_override ?? r.post_body,
-      mediaUrl,
-      mediaMime,
-      scheduledAt: r.scheduled_at,
-    };
-  }));
-  return c.json({ items });
-});
-
 // Mark a target as published manually
 posts.post("/:id/targets/:network/mark-published", async (c) => {
   const userId = c.get("userId");
@@ -262,5 +306,17 @@ posts.post("/:id/targets/:network/mark-published", async (c) => {
 
   const ok = await markTargetPublished(c.env.DB, userId, id, target.id, body.externalUrl ?? null);
   if (!ok) return c.json({ error: "not_found" }, 404);
+  return c.json({ ok: true });
+});
+
+posts.post("/:id/targets/:network/retry", async (c) => {
+  const userId = c.get("userId");
+  const id = c.req.param("id");
+  const network = c.req.param("network");
+  // Verify post exists for clearer 404
+  const post = await getPostById(c.env.DB, userId, id);
+  if (!post) return c.json({ error: "post_not_found" }, 404);
+  const ok = await resetTargetForRetry(c.env.DB, userId, id, network);
+  if (!ok) return c.json({ error: "target_not_found" }, 404);
   return c.json({ ok: true });
 });

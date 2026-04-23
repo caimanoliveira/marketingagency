@@ -113,12 +113,13 @@ export async function updatePost(
   db: D1Database,
   userId: string,
   id: string,
-  patch: { body?: string; mediaId?: string | null }
+  patch: { body?: string; mediaId?: string | null; status?: string }
 ): Promise<boolean> {
   const sets: string[] = [];
   const vals: unknown[] = [];
   if (patch.body !== undefined) { sets.push("body = ?"); vals.push(patch.body); }
   if (patch.mediaId !== undefined) { sets.push("media_id = ?"); vals.push(patch.mediaId); }
+  if (patch.status !== undefined) { sets.push("status = ?"); vals.push(patch.status); }
   if (sets.length === 0) return true;
   sets.push("updated_at = ?");
   vals.push(Date.now(), id, userId);
@@ -410,6 +411,81 @@ export async function markTargetPublished(
     "UPDATE post_targets SET status = 'published', external_id = ?, published_at = ? WHERE id = ?"
   ).bind(externalUrl, now, targetId).run();
   // Don't force post status to 'published' — other targets may still be pending
+  return true;
+}
+
+export async function listPostsByMonth(
+  db: D1Database,
+  userId: string,
+  fromMs: number,
+  toMs: number
+): Promise<Array<{
+  id: string;
+  body: string;
+  status: string;
+  media_id: string | null;
+  networks: string;
+  scheduled_at: number;
+  updated_at: number;
+}>> {
+  const { results } = await db.prepare(
+    `SELECT p.id, p.body, p.status, p.media_id, p.updated_at,
+            COALESCE(GROUP_CONCAT(t2.network), '') AS networks,
+            MIN(t.scheduled_at) AS scheduled_at
+     FROM posts p
+     JOIN post_targets t ON t.post_id = p.id
+     LEFT JOIN post_targets t2 ON t2.post_id = p.id
+     WHERE p.user_id = ?
+       AND t.scheduled_at >= ? AND t.scheduled_at < ?
+     GROUP BY p.id
+     ORDER BY scheduled_at ASC
+     LIMIT 500`
+  ).bind(userId, fromMs, toMs).all<{
+    id: string; body: string; status: string; media_id: string | null;
+    networks: string; scheduled_at: number; updated_at: number;
+  }>();
+  return results ?? [];
+}
+
+export async function listFailures(
+  db: D1Database,
+  userId: string
+): Promise<Array<{
+  post_id: string; post_body: string; network: string;
+  last_error: string | null; attempts: number; scheduled_at: number | null;
+}>> {
+  const { results } = await db.prepare(
+    `SELECT p.id AS post_id, p.body AS post_body, t.network, t.last_error, t.attempts, t.scheduled_at
+     FROM post_targets t
+     JOIN posts p ON p.id = t.post_id
+     WHERE p.user_id = ? AND t.status = 'failed'
+     ORDER BY t.attempts DESC
+     LIMIT 100`
+  ).bind(userId).all<{
+    post_id: string; post_body: string; network: string;
+    last_error: string | null; attempts: number; scheduled_at: number | null;
+  }>();
+  return results ?? [];
+}
+
+export async function resetTargetForRetry(
+  db: D1Database,
+  userId: string,
+  postId: string,
+  network: string
+): Promise<boolean> {
+  // Verify ownership
+  const target = await db.prepare(
+    "SELECT t.id FROM post_targets t JOIN posts p ON p.id = t.post_id WHERE t.post_id = ? AND t.network = ? AND p.user_id = ?"
+  ).bind(postId, network, userId).first<{ id: string }>();
+  if (!target) return false;
+  const now = Date.now();
+  await db.prepare(
+    `UPDATE post_targets SET status = 'scheduled',
+       scheduled_at = CASE WHEN scheduled_at IS NULL OR scheduled_at < ? THEN ? ELSE scheduled_at END,
+       last_error = NULL
+     WHERE id = ?`
+  ).bind(now, now, target.id).run();
   return true;
 }
 
