@@ -3,6 +3,7 @@ import { callClaudeJson, MODEL } from "./claude";
 import { systemForStrategy, userForStrategy } from "./strategy-prompts";
 import {
   listPillars, listSources, getMetaConnection, saveWeeklySuggestion,
+  getPillarPerformance,
   type SuggestedPostJson, type ContentPillarRow, type InspirationSourceRow,
 } from "../db/queries";
 import { fetchCompetitorBasic } from "../integrations/meta";
@@ -28,6 +29,14 @@ export async function generateWeeklyPlan(
 ): Promise<{ suggestionId: string; weekStart: string }> {
   const pillars: ContentPillarRow[] = await listPillars(env.DB, userId);
   const radarSources: InspirationSourceRow[] = await listSources(env.DB, userId);
+
+  const perfRows = await getPillarPerformance(env.DB, userId, 30);
+  const pillarPerformance = perfRows.map((r) => ({
+    pillarId: r.pillar_id,
+    title: r.title,
+    postCount: r.post_count ?? 0,
+    avgEngagementRate: r.avg_engagement_rate,
+  }));
 
   // Top posts (last 30d)
   const thirtyDaysAgo = Date.now() - 30 * 24 * 3600 * 1000;
@@ -103,6 +112,7 @@ export async function generateWeeklyPlan(
     radarSamples,
     recentOwnPosts,
     targetNetworks,
+    pillarPerformance,
   });
 
   const result = await callClaudeJson<{ rationale: string; posts: Array<{ day: string; time: string; network: string; pillarId: string | null; format: string; hook: string; body: string; media_suggestion: string }> }>(

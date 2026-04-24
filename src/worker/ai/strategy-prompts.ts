@@ -12,10 +12,18 @@ interface RadarSample {
   snippet: string;     // condensed recent content idea, from business_discovery
 }
 
+export interface PillarPerformanceSample {
+  pillarId: string;
+  title: string;
+  postCount: number;
+  avgEngagementRate: number | null;
+}
+
 export function systemForStrategy(): string {
   return [
     "Você é um estrategista de conteúdo sênior que monta agendas editoriais semanais para redes sociais (Instagram, TikTok, LinkedIn).",
     "Monta planos pragmáticos, com variedade de formatos e tons, alinhados aos pilares de conteúdo do usuário.",
+    "Quando houver dados de performance por pilar (avgEngagementRate ≥ 0), priorize os dois pilares de maior engagement na distribuição — aproximadamente 60% dos posts. Mantenha pelo menos 1 post para cada pilar restante para evitar colapso de diversidade. Pilares com menos de 3 posts observados têm sinal fraco: ainda incluir, porém sem reponderar agressivamente. Cite os scores usados no campo 'rationale'.",
     "Responde APENAS em JSON válido no formato:",
     `{"rationale":"resumo curto do porquê dessa agenda","posts":[{"day":"seg|ter|qua|qui|sex|sab|dom","time":"HH:MM","network":"instagram|tiktok|linkedin","pillarId":"id ou null","format":"post|reels|carousel|short-video","hook":"primeira frase chamativa","body":"copy completo","media_suggestion":"ideia visual"}]}`,
     "Sem markdown, sem comentários fora do JSON.",
@@ -32,6 +40,7 @@ export function userForStrategy(args: {
   radarSamples: RadarSample[];
   recentOwnPosts: Array<{ network: string; body: string; publishedAt: number | null }>;
   targetNetworks: string[];
+  pillarPerformance?: PillarPerformanceSample[];
 }): string {
   const parts: string[] = [];
   parts.push(`Semana começando: ${args.weekStart}`);
@@ -44,6 +53,18 @@ export function userForStrategy(args: {
     }
   } else {
     parts.push("Sem pilares definidos — distribua temas genéricos.");
+  }
+
+  if (args.pillarPerformance && args.pillarPerformance.length > 0) {
+    const hasSignal = args.pillarPerformance.some((p) => p.avgEngagementRate !== null);
+    if (hasSignal) {
+      parts.push("Performance por pilar (últimos 30 dias) — use pra reponderar:");
+      const sorted = [...args.pillarPerformance].sort((a, b) => (b.avgEngagementRate ?? -1) - (a.avgEngagementRate ?? -1));
+      for (const p of sorted) {
+        const pct = p.avgEngagementRate === null ? "—" : `${(p.avgEngagementRate * 100).toFixed(2)}%`;
+        parts.push(`  - [${p.pillarId}] ${p.title}: engagement médio ${pct} em ${p.postCount} post${p.postCount === 1 ? "" : "s"}`);
+      }
+    }
   }
 
   if (args.targetNetworks.length > 0) {
