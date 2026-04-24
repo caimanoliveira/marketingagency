@@ -8,6 +8,7 @@ import { connections } from "./routes/connections";
 import { publish } from "./routes/publish";
 import { analytics } from "./routes/analytics";
 import { competitors } from "./routes/competitors";
+import { strategy } from "./routes/strategy";
 import type { PublishJob } from "../shared/types";
 
 export interface Env {
@@ -43,6 +44,7 @@ app.route("/api/connections", connections);
 app.route("/api/publish", publish);
 app.route("/api/analytics", analytics);
 app.route("/api/competitors", competitors);
+app.route("/api/strategy", strategy);
 
 app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));
 
