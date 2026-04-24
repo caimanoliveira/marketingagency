@@ -6,11 +6,13 @@ import { NetworkSelector } from "../components/NetworkSelector";
 import { NetworkPreview } from "../components/NetworkPreview";
 import { MediaUploader } from "../components/MediaUploader";
 import { MediaPicker } from "../components/MediaPicker";
-import { AIAssistant } from "../components/AIAssistant";
 import { Schedule } from "../components/Schedule";
 import { LinkedInTargetPicker } from "../components/LinkedInTargetPicker";
 import { InstagramTargetPicker } from "../components/InstagramTargetPicker";
+import { AIAssistant } from "../components/AIAssistant";
 import { SkeletonRow } from "../components/Skeleton";
+import { Button, ConfirmDialog } from "../ui";
+import { toasts } from "../ui/toast";
 import type { Network, Post } from "../../shared/types";
 
 export function Editor() {
@@ -31,6 +33,7 @@ export function Editor() {
     instagram: null, tiktok: null, linkedin: null,
   });
   const [showPicker, setShowPicker] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const { data: post, isLoading } = useQuery({
     queryKey: ["post", id],
@@ -43,17 +46,17 @@ export function Editor() {
       setBody(post.body);
       setMediaId(post.mediaId);
       setNetworks(post.targets.map((t) => t.network));
-      const next: Record<Network, string | null> = { instagram: null, tiktok: null, linkedin: null };
-      for (const t of post.targets) next[t.network] = t.bodyOverride;
-      setOverrides(next);
-      const nextSchedules: Record<Network, number | null> = { instagram: null, tiktok: null, linkedin: null };
-      const nextRefs: Record<Network, string | null> = { instagram: null, tiktok: null, linkedin: null };
+      const overr: Record<Network, string | null> = { instagram: null, tiktok: null, linkedin: null };
+      const sched: Record<Network, number | null> = { instagram: null, tiktok: null, linkedin: null };
+      const refs: Record<Network, string | null> = { instagram: null, tiktok: null, linkedin: null };
       for (const t of post.targets) {
-        nextSchedules[t.network] = t.scheduledAt;
-        nextRefs[t.network] = t.targetRef;
+        overr[t.network] = t.bodyOverride;
+        sched[t.network] = t.scheduledAt;
+        refs[t.network] = t.targetRef;
       }
-      setSchedules(nextSchedules);
-      setTargetRefs(nextRefs);
+      setOverrides(overr);
+      setSchedules(sched);
+      setTargetRefs(refs);
     }
   }, [post?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -81,90 +84,109 @@ export function Editor() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["post", id] });
       qc.invalidateQueries({ queryKey: ["posts"] });
+      toasts.success("Salvo");
     },
   });
 
   async function handleSave() {
-    await saveBase.mutateAsync();
-    await saveTargets.mutateAsync();
+    try {
+      await saveBase.mutateAsync();
+      await saveTargets.mutateAsync();
+    } catch (e) {
+      toasts.error("Falha ao salvar", e instanceof Error ? e.message : undefined);
+    }
   }
 
   async function handleDelete() {
-    if (!id || !confirm("Excluir esse post?")) return;
-    await api.deletePost(id);
-    qc.invalidateQueries({ queryKey: ["posts"] });
-    nav("/posts");
+    if (!id) return;
+    try {
+      await api.deletePost(id);
+      qc.invalidateQueries({ queryKey: ["posts"] });
+      toasts.success("Post excluído");
+      nav("/posts");
+    } catch (e) {
+      toasts.error("Falha ao excluir");
+    }
   }
 
   if (!id || id === "new") {
     return (
       <div>
-        <p>Redirecionando — use o botão "+ Novo post" na lista.</p>
+        <p style={{ color: "var(--lume-text-muted)" }}>Redirecionando — use o botão "+ Novo post" na lista.</p>
       </div>
     );
   }
+
   if (isLoading) return <SkeletonRow count={3} />;
 
   const media = post?.media ?? null;
+  const isBusy = saveBase.isPending || saveTargets.isPending;
+  const hasCopy = body.trim().length > 0;
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <h1>{post?.body ? "Editar post" : "Novo post"}</h1>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className="btn-danger" onClick={handleDelete}>Excluir</button>
-          <button className="btn-primary" onClick={handleSave} disabled={saveBase.isPending || saveTargets.isPending}>
-            {saveBase.isPending || saveTargets.isPending ? "Salvando..." : "Salvar"}
-          </button>
+      <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <h1>{post?.body ? "Editar post" : "Novo post"}</h1>
+          <p style={{ color: "var(--lume-text-muted)", fontSize: 14, margin: "4px 0 0" }}>
+            Escreva, customize por rede, agende.
+          </p>
         </div>
-      </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button variant="danger" onClick={() => setConfirmDelete(true)}>Excluir</Button>
+          <Button onClick={handleSave} loading={isBusy}>Salvar</Button>
+        </div>
+      </header>
 
       <div className="editor-grid">
         <div className="editor-pane">
           <AIAssistant body={body} onApply={(text) => setBody(text)} />
-          <label style={{ fontSize: 14, color: "#aaa", marginBottom: 8, display: "block" }}>Copy base</label>
+
+          <label style={{ marginBottom: 8, display: "block" }}>Copy base</label>
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
             placeholder="Escreva sua ideia. Você pode customizar por rede no painel ao lado."
+            style={{ minHeight: 260 }}
           />
 
-          <div style={{ marginTop: 20 }}>
-            <label style={{ fontSize: 14, color: "#aaa", marginBottom: 8, display: "block" }}>Redes</label>
+          <div style={{ marginTop: 24 }}>
+            <label>Redes</label>
             <NetworkSelector value={networks} onChange={setNetworks} />
           </div>
 
-          <div style={{ marginTop: 20 }}>
-            <label style={{ fontSize: 14, color: "#aaa", marginBottom: 8, display: "block" }}>Mídia</label>
+          <div style={{ marginTop: 24 }}>
+            <label>Mídia</label>
             <MediaUploader onUploaded={(mid) => setMediaId(mid)} />
-            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-              <button className="btn-secondary" onClick={() => setShowPicker((s) => !s)}>
+            <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+              <Button variant="secondary" size="sm" onClick={() => setShowPicker((s) => !s)}>
                 {showPicker ? "Fechar biblioteca" : "Escolher da biblioteca"}
-              </button>
+              </Button>
               {mediaId && (
-                <button className="btn-secondary" onClick={() => setMediaId(null)}>Remover mídia</button>
+                <Button variant="secondary" size="sm" onClick={() => setMediaId(null)}>Remover mídia</Button>
               )}
             </div>
             {showPicker && (
-              <div style={{ marginTop: 12 }}>
+              <div style={{ marginTop: 16 }}>
                 <MediaPicker
                   selectedId={mediaId}
-                  onSelect={(mid) => {
-                    setMediaId(mid);
-                    setShowPicker(false);
-                  }}
+                  onSelect={(mid) => { setMediaId(mid); setShowPicker(false); }}
                 />
               </div>
             )}
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {networks.length === 0 && (
-            <p style={{ color: "#888" }}>Selecione pelo menos uma rede pra ver o preview.</p>
+            <div className="empty-state" style={{ margin: 0 }}>
+              <div className="empty-state-icon" aria-hidden>👆</div>
+              <div className="empty-state-title">Selecione uma rede</div>
+              <div className="empty-state-desc">Escolha pelo menos uma rede pra ver o preview.</div>
+            </div>
           )}
           {networks.map((n) => (
-            <div key={n} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div key={n} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <NetworkPreview
                 network={n}
                 baseBody={body}
@@ -172,22 +194,22 @@ export function Editor() {
                 media={media}
                 onOverrideChange={(text) => setOverrides((prev) => ({ ...prev, [n]: text }))}
               />
-              <div style={{ padding: "8px 12px", background: "#0d0d12", border: "1px solid #1f1f28", borderRadius: 8, fontSize: 12 }}>
+              <div style={{ padding: 12, background: "var(--lume-surface)", border: "1px solid var(--lume-border)", borderRadius: 12, fontSize: 13 }}>
                 {post?.targets.find((t) => t.network === n) && (
-                  <div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, color: "var(--lume-text-muted)", marginBottom: 8 }}>
                     Status: <span className={`status-${post.targets.find((t) => t.network === n)!.status}`}>
                       {post.targets.find((t) => t.network === n)!.status}
                     </span>
                     {post.targets.find((t) => t.network === n)?.lastError && (
-                      <span style={{ color: "#ff6b6b", marginLeft: 8 }}>
+                      <span style={{ color: "var(--lume-danger)", marginLeft: 8 }}>
                         ({post.targets.find((t) => t.network === n)!.lastError})
                       </span>
                     )}
                   </div>
                 )}
                 {n === "linkedin" && (
-                  <div style={{ marginBottom: 8 }}>
-                    <label style={{ display: "block", color: "#aaa", fontSize: 11, marginBottom: 4 }}>Publicar em:</label>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ fontSize: 11 }}>Publicar em</label>
                     <LinkedInTargetPicker
                       value={targetRefs.linkedin}
                       onChange={(ref) => setTargetRefs((prev) => ({ ...prev, linkedin: ref }))}
@@ -195,48 +217,55 @@ export function Editor() {
                   </div>
                 )}
                 {n === "instagram" && (
-                  <div style={{ marginBottom: 8 }}>
-                    <label style={{ display: "block", color: "#aaa", fontSize: 11, marginBottom: 4 }}>Conta Instagram:</label>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ fontSize: 11 }}>Conta Instagram</label>
                     <InstagramTargetPicker
                       value={targetRefs.instagram}
                       onChange={(ref) => setTargetRefs((prev) => ({ ...prev, instagram: ref }))}
                     />
                   </div>
                 )}
-                <label style={{ display: "block", color: "#aaa", fontSize: 11, marginBottom: 4 }}>Agendar:</label>
+                <label style={{ fontSize: 11 }}>Agendar</label>
                 <Schedule
                   value={schedules[n]}
                   onChange={(ms) => setSchedules((prev) => ({ ...prev, [n]: ms }))}
                 />
-                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                  <button
-                    className="btn-primary"
-                    style={{ fontSize: 11, padding: "4px 10px" }}
+                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                  <Button
+                    size="sm"
+                    disabled={!hasCopy}
                     onClick={async () => {
                       if (!id) return;
-                      // Save first (idempotent), then publish
                       try {
                         await saveBase.mutateAsync();
                         await saveTargets.mutateAsync();
                         await api.publishNow(id, n);
                         qc.invalidateQueries({ queryKey: ["post", id] });
                         qc.invalidateQueries({ queryKey: ["posts"] });
-                        alert("Publicado!");
+                        toasts.success(`Publicado no ${n}`);
                       } catch (e) {
-                        alert("Falhou: " + (e instanceof Error ? e.message : "erro"));
+                        toasts.error("Publicação falhou", e instanceof Error ? e.message : undefined);
                       }
                     }}
-                    disabled={!body.trim()}
-                    title={!body.trim() ? "Copy vazio" : "Publicar agora nessa rede"}
                   >
                     🚀 Publicar agora
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Excluir esse post?"
+        message="Essa ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        danger
+        onConfirm={handleDelete}
+        onClose={() => setConfirmDelete(false)}
+      />
     </div>
   );
 }
