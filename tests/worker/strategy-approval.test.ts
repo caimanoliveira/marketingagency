@@ -15,7 +15,7 @@ const USER = "u_appr";
 
 const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, created_at INTEGER NOT NULL)`,
-  `CREATE TABLE IF NOT EXISTS posts (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', media_id TEXT, status TEXT NOT NULL DEFAULT 'draft', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS posts (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', media_id TEXT, pillar_id TEXT, status TEXT NOT NULL DEFAULT 'draft', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS post_targets (id TEXT PRIMARY KEY, post_id TEXT NOT NULL, network TEXT NOT NULL, body_override TEXT, scheduled_at INTEGER, published_at INTEGER, external_id TEXT, status TEXT NOT NULL DEFAULT 'pending', target_ref TEXT, last_error TEXT, attempts INTEGER NOT NULL DEFAULT 0)`,
   `CREATE TABLE IF NOT EXISTS post_metrics (id TEXT PRIMARY KEY, post_id TEXT NOT NULL, target_id TEXT NOT NULL, network TEXT NOT NULL, snapshot_at INTEGER NOT NULL, likes INTEGER, comments INTEGER, shares INTEGER, saved INTEGER, reach INTEGER, impressions INTEGER, engagement_rate REAL, extra_json TEXT, created_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS content_pillars (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, title TEXT NOT NULL, description TEXT, color TEXT, position INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL)`,
@@ -36,11 +36,14 @@ async function authedCall(path: string, init?: RequestInit) {
   return res;
 }
 
-async function seedSuggestion(weekStart: string, posts: Array<{ day: string; time: string; network: string; body: string }>) {
+async function seedSuggestion(
+  weekStart: string,
+  posts: Array<{ day: string; time: string; network: string; body: string; pillarId?: string | null }>
+) {
   callClaudeJson.mockResolvedValueOnce({
     data: {
       rationale: "r",
-      posts: posts.map((p) => ({ day: p.day, time: p.time, network: p.network, pillarId: null, format: "post", hook: "h", body: p.body, media_suggestion: "m" })),
+      posts: posts.map((p) => ({ day: p.day, time: p.time, network: p.network, pillarId: p.pillarId ?? null, format: "post", hook: "h", body: p.body, media_suggestion: "m" })),
     },
     usage: { inputTokens: 100, outputTokens: 50, cachedTokens: 80 },
     durationMs: 200,
@@ -62,6 +65,7 @@ beforeEach(async () => {
   await env.DB.prepare("DELETE FROM post_targets WHERE post_id LIKE 'p_appr_%' OR post_id IN (SELECT id FROM posts WHERE user_id = ?)").bind(USER).run();
   await env.DB.prepare("DELETE FROM posts WHERE user_id = ?").bind(USER).run();
   await env.DB.prepare("DELETE FROM weekly_suggestions WHERE user_id = ?").bind(USER).run();
+  await env.DB.prepare("DELETE FROM content_pillars WHERE user_id = ?").bind(USER).run();
 });
 
 describe("POST /api/strategy/weekly-suggestions/:id/approve", () => {
@@ -137,6 +141,32 @@ describe("POST /api/strategy/weekly-suggestions/:id/approve", () => {
   it("404 for unknown suggestion", async () => {
     const res = await authedCall("/api/strategy/weekly-suggestions/wsg_nope/approve", { method: "POST", body: "{}" });
     expect(res.status).toBe(404);
+  });
+
+  it("persists valid pillarId on created drafts and drops invalid ids to null", async () => {
+    await env.DB.prepare(
+      "INSERT INTO content_pillars (id, user_id, title, position, created_at) VALUES (?, ?, ?, 0, ?)"
+    ).bind("pil_real", USER, "Real", Date.now()).run();
+
+    const futureDate = new Date(Date.now() + 7 * 24 * 3600 * 1000);
+    const futureStartIso = `${futureDate.getUTCFullYear()}-${String(futureDate.getUTCMonth() + 1).padStart(2, "0")}-${String(futureDate.getUTCDate()).padStart(2, "0")}`;
+    const id = await seedSuggestion(futureStartIso, [
+      { day: "seg", time: "09:00", network: "linkedin", body: "good pillar", pillarId: "pil_real" },
+      { day: "ter", time: "10:00", network: "instagram", body: "bad pillar", pillarId: "pil_hallucinated" },
+      { day: "qua", time: "11:00", network: "linkedin", body: "no pillar", pillarId: null },
+    ]);
+    const res = await authedCall(`/api/strategy/weekly-suggestions/${id}/approve`, {
+      method: "POST", body: "{}",
+    });
+    expect(res.status).toBe(200);
+
+    const rows = await env.DB.prepare(
+      "SELECT body, pillar_id FROM posts WHERE user_id = ? ORDER BY body"
+    ).bind(USER).all<{ body: string; pillar_id: string | null }>();
+    const byBody = Object.fromEntries((rows.results ?? []).map((r) => [r.body, r.pillar_id]));
+    expect(byBody["good pillar"]).toBe("pil_real");
+    expect(byBody["bad pillar"]).toBeNull();
+    expect(byBody["no pillar"]).toBeNull();
   });
 
   it("400 when suggestion has no accepted posts (empty indices and empty suggestion)", async () => {

@@ -229,11 +229,17 @@ strategy.post("/weekly-suggestions/:id/approve", async (c) => {
   const createdPostIds: string[] = [];
   const now = Date.now();
 
+  // Validate that any pillarId the LLM suggested actually belongs to this user.
+  // Unknown ids are silently dropped to null so a hallucinated id doesn't block approval.
+  const ownedPillars = await listPillars(c.env.DB, userId);
+  const pillarIds = new Set(ownedPillars.map((p) => p.id));
+
   for (const { post } of selected) {
     const postId = randomId("p");
+    const pillarId = post.pillarId && pillarIds.has(post.pillarId) ? post.pillarId : null;
     await c.env.DB.prepare(
-      "INSERT INTO posts (id, user_id, body, status, created_at, updated_at) VALUES (?, ?, ?, 'draft', ?, ?)"
-    ).bind(postId, userId, post.body, now, now).run();
+      "INSERT INTO posts (id, user_id, body, pillar_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'draft', ?, ?)"
+    ).bind(postId, userId, post.body, pillarId, now, now).run();
 
     const scheduledAt = scheduleAtFromDayTime(suggestion.weekStart, post.day, post.time);
     const status = scheduledAt !== null && scheduledAt > now ? "scheduled" : "pending";
