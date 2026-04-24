@@ -650,3 +650,46 @@ label { display: block; font-size: var(--lume-text-xs); font-weight: 600; color:
 .failure-row-info { flex: 1; min-width: 0; }
 .failure-net-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; color: white; font-weight: 600; }
 .failure-row-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* UI kit additions */
+.lume-avatar {
+  border-radius: var(--lume-radius-full);
+  object-fit: cover;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.lume-avatar-fallback {
+  background: var(--lume-primary-soft);
+  color: var(--lume-primary-active);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lume-helper {
+  font-size: var(--lume-text-xs);
+  color: var(--lume-text-muted);
+  margin-top: var(--lume-space-2);
+}
+
+.lume-input-wrap {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--lume-border-strong);
+  border-radius: var(--lume-radius-md);
+  background: var(--lume-surface);
+  overflow: hidden;
+  transition: border-color var(--lume-transition), box-shadow var(--lume-transition);
+}
+.lume-input-wrap:focus-within { border-color: var(--lume-border-focus); box-shadow: var(--lume-shadow-focus); }
+.lume-input-wrap input { border: 0; border-radius: 0; flex: 1; }
+.lume-input-wrap input:focus { box-shadow: none; }
+.lume-input-addon {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--lume-space-3);
+  color: var(--lume-text-soft);
+  font-size: var(--lume-text-sm);
+  background: var(--lume-surface-soft);
+}

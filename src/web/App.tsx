@@ -12,6 +12,7 @@ import { Kanban } from "./pages/Kanban";
 import { Analytics } from "./pages/Analytics";
 import { Benchmarks } from "./pages/Benchmarks";
 import { Strategy } from "./pages/Strategy";
+import { ToastContainer } from "./ui/toast";
 import "./styles.css";
 
 export function App() {
@@ -34,6 +35,7 @@ export function App() {
             <Route path="/settings" element={<Settings />} />
           </Route>
         </Routes>
+        <ToastContainer />
       </BrowserRouter>
     </QueryClientProvider>
   );
