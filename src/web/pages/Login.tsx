@@ -1,6 +1,8 @@
 import { useState, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
+import { Button, Input } from "../ui";
+import { Logo } from "../components/Logo";
 
 export function Login() {
   const nav = useNavigate();
@@ -24,16 +26,36 @@ export function Login() {
   }
 
   return (
-    <div className="wrap">
-      <h1>Centro de Comando — Login</h1>
-      <form onSubmit={onSubmit}>
-        <label>Email</label>
-        <input value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
-        <label>Senha</label>
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        <button disabled={busy}>{busy ? "Entrando..." : "Entrar"}</button>
-        {err && <div className="err">{err}</div>}
-      </form>
+    <div className="lume-auth-wrap">
+      <div className="lume-auth-card">
+        <Logo />
+        <h1 style={{ fontSize: 22, marginTop: 0, marginBottom: 8 }}>Entrar no Lume</h1>
+        <p style={{ color: "var(--lume-text-muted)", fontSize: 14, marginTop: 0, marginBottom: 24 }}>
+          Acesse seu centro de comando.
+        </p>
+        <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <Input
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            required
+          />
+          <Input
+            label="Senha"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            required
+          />
+          {err && <div className="err">{err}</div>}
+          <Button type="submit" disabled={busy} size="lg" style={{ marginTop: 8 }}>
+            {busy ? "Entrando…" : "Entrar"}
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }
