@@ -184,4 +184,44 @@ export const api = {
     previous: { totalReach: number; totalEngagement: number; followerGrowth: number; postsPublished: number };
     delta: { totalReachPct: number | null; totalEngagementPct: number | null; followerGrowthPct: number | null; postsPublishedPct: number | null };
   }>("/api/analytics/wow"),
+
+  // Strategy — Pillars
+  listPillars: () => req<{
+    items: Array<{ id: string; title: string; description: string | null; color: string | null; position: number; createdAt: number }>;
+  }>("/api/strategy/pillars"),
+  createPillar: (body: { title: string; description?: string | null; color?: string | null; position?: number }) =>
+    json<{ id: string; title: string; description: string | null; color: string | null; position: number; createdAt: number }>("/api/strategy/pillars", "POST", body),
+  updatePillar: (id: string, body: { title?: string; description?: string | null; color?: string | null; position?: number }) =>
+    json<{ id: string; title: string; description: string | null; color: string | null; position: number; createdAt: number }>(`/api/strategy/pillars/${id}`, "PATCH", body),
+  deletePillar: (id: string) => json<{ ok: true }>(`/api/strategy/pillars/${id}`, "DELETE"),
+
+  // Strategy — Sources
+  listSources: () => req<{
+    items: Array<{ id: string; network: string; username: string; note: string | null; addedAt: number }>;
+  }>("/api/strategy/sources"),
+  addSource: (body: { network: "instagram" | "tiktok" | "linkedin"; username: string; note?: string | null }) =>
+    json<{ id: string; network: string; username: string; note: string | null; addedAt: number }>("/api/strategy/sources", "POST", body),
+  removeSource: (id: string) => json<{ ok: true }>(`/api/strategy/sources/${id}`, "DELETE"),
+
+  // Strategy — Weekly suggestions
+  generateWeeklyPlan: (body: { theme?: string; weekStart?: string }) =>
+    json<{
+      id: string; weekStart: string; theme: string | null; status: string;
+      rationale: string | null;
+      posts: Array<{ day: string; time: string; network: string; pillarId: string | null; format: string; hook: string; body: string; mediaSuggestion: string }>;
+      createdAt: number; approvedAt: number | null;
+    }>("/api/strategy/generate", "POST", body),
+  listWeeklySuggestions: (limit = 10) =>
+    req<{
+      items: Array<{ id: string; weekStart: string; theme: string | null; status: string; posts: unknown[]; createdAt: number }>;
+    }>(`/api/strategy/weekly-suggestions?limit=${limit}`),
+  getWeeklySuggestion: (id: string) =>
+    req<{
+      id: string; weekStart: string; theme: string | null; status: string;
+      rationale: string | null;
+      posts: Array<{ day: string; time: string; network: string; pillarId: string | null; format: string; hook: string; body: string; mediaSuggestion: string }>;
+      createdAt: number; approvedAt: number | null;
+    }>(`/api/strategy/weekly-suggestions/${id}`),
+  approveWeeklySuggestion: (id: string, acceptIndices?: number[]) =>
+    json<{ createdPostIds: string[] }>(`/api/strategy/weekly-suggestions/${id}/approve`, "POST", acceptIndices ? { acceptIndices } : {}),
 };

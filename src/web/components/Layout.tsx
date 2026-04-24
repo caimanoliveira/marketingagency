@@ -32,6 +32,7 @@ export function Layout() {
           <NavLink to="/kanban">Kanban</NavLink>
           <NavLink to="/analytics">Analytics</NavLink>
           <NavLink to="/benchmarks">Benchmarks</NavLink>
+          <NavLink to="/strategy">Estratégia</NavLink>
           <NavLink to="/settings">Configurações</NavLink>
         </nav>
         <div className="sidebar-foot">
