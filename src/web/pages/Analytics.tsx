@@ -7,6 +7,7 @@ import { KpiCard, formatNumber } from "../components/KpiCard";
 import { SkeletonRow } from "../components/Skeleton";
 import { WoWChips } from "../components/WoWChips";
 import { TopPostsCard } from "../components/TopPostsCard";
+import { Button } from "../ui";
 
 type Period = 7 | 30 | 90;
 
@@ -28,8 +29,13 @@ export function Analytics() {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <h1>Analytics</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+        <header>
+          <h1>Analytics</h1>
+          <p style={{ color: "var(--lume-text-muted)", fontSize: 14, margin: "4px 0 0" }}>
+            Métricas agregadas das suas redes e crescimento.
+          </p>
+        </header>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <div className="period-toggle">
             {([7, 30, 90] as Period[]).map((p) => (
@@ -42,13 +48,13 @@ export function Analytics() {
               </button>
             ))}
           </div>
-          <button
-            className="btn-secondary"
+          <Button
+            variant="secondary"
             onClick={() => collect.mutate()}
-            disabled={collect.isPending}
+            loading={collect.isPending}
           >
-            {collect.isPending ? "Coletando..." : "🔄 Coletar agora"}
-          </button>
+            🔄 Coletar agora
+          </Button>
         </div>
       </div>
 
@@ -62,7 +68,7 @@ export function Analytics() {
                 value={formatNumber(data.totalReach)}
                 hint={`últimos ${data.periodDays} dias`}
               />
-              <div style={{ fontSize: 12, color: "#888", marginTop: 4, paddingLeft: 4 }}><WoWChips field="reach" /></div>
+              <div style={{ fontSize: 12, color: "var(--lume-text-muted)", marginTop: 4, paddingLeft: 4 }}><WoWChips field="reach" /></div>
             </div>
             <div>
               <KpiCard
@@ -70,7 +76,7 @@ export function Analytics() {
                 value={formatNumber(data.totalEngagement)}
                 hint="likes + comentários + shares + saves"
               />
-              <div style={{ fontSize: 12, color: "#888", marginTop: 4, paddingLeft: 4 }}><WoWChips field="engagement" /></div>
+              <div style={{ fontSize: 12, color: "var(--lume-text-muted)", marginTop: 4, paddingLeft: 4 }}><WoWChips field="engagement" /></div>
             </div>
             <KpiCard
               label="Crescimento"
@@ -84,7 +90,7 @@ export function Analytics() {
                 value={data.postsPublished}
                 hint={`no período de ${data.periodDays}d`}
               />
-              <div style={{ fontSize: 12, color: "#888", marginTop: 4, paddingLeft: 4 }}><WoWChips field="posts" /></div>
+              <div style={{ fontSize: 12, color: "var(--lume-text-muted)", marginTop: 4, paddingLeft: 4 }}><WoWChips field="posts" /></div>
             </div>
           </div>
 
@@ -108,7 +114,7 @@ export function Analytics() {
             <div className="chart-card">
               <h3>Mix de conteúdo</h3>
               {data.contentMix.length === 0 ? (
-                <p style={{ color: "#888" }}>Sem posts no período.</p>
+                <p style={{ color: "var(--lume-text-muted)" }}>Sem posts no período.</p>
               ) : (
                 <ResponsiveContainer width="100%" height={260}>
                   <PieChart>
@@ -136,7 +142,7 @@ export function Analytics() {
           </div>
 
           {(data.postsPublished === 0 && data.totalEngagement === 0) && (
-            <p style={{ color: "#888", textAlign: "center", marginTop: 32, fontSize: 13 }}>
+            <p style={{ color: "var(--lume-text-muted)", textAlign: "center", marginTop: 32, fontSize: 13 }}>
               Ainda não há dados. Publique alguns posts e clique em "🔄 Coletar agora" pra buscar métricas.
             </p>
           )}
