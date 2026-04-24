@@ -20,6 +20,7 @@ export function Editor() {
 
   const [body, setBody] = useState("");
   const [mediaId, setMediaId] = useState<string | null>(null);
+  const [pillarId, setPillarId] = useState<string | null>(null);
   const [networks, setNetworks] = useState<Network[]>([]);
   const [overrides, setOverrides] = useState<Record<Network, string | null>>({
     instagram: null, tiktok: null, linkedin: null,
@@ -38,10 +39,17 @@ export function Editor() {
     enabled: !!id && id !== "new",
   });
 
+  const { data: pillarsData } = useQuery({
+    queryKey: ["pillars"],
+    queryFn: () => api.listPillars(),
+  });
+  const pillars = pillarsData?.items ?? [];
+
   useEffect(() => {
     if (post) {
       setBody(post.body);
       setMediaId(post.mediaId);
+      setPillarId(post.pillarId);
       setNetworks(post.targets.map((t) => t.network));
       const next: Record<Network, string | null> = { instagram: null, tiktok: null, linkedin: null };
       for (const t of post.targets) next[t.network] = t.bodyOverride;
@@ -60,7 +68,7 @@ export function Editor() {
   const saveBase = useMutation({
     mutationFn: async (): Promise<Post> => {
       if (!id || id === "new") throw new Error("no_id");
-      return api.updatePost(id, { body, mediaId });
+      return api.updatePost(id, { body, mediaId, pillarId });
     },
   });
 
@@ -132,6 +140,23 @@ export function Editor() {
           <div style={{ marginTop: 20 }}>
             <label style={{ fontSize: 14, color: "#aaa", marginBottom: 8, display: "block" }}>Redes</label>
             <NetworkSelector value={networks} onChange={setNetworks} />
+          </div>
+
+          <div style={{ marginTop: 20 }}>
+            <label style={{ fontSize: 14, color: "#aaa", marginBottom: 8, display: "block" }}>Pilar</label>
+            <select
+              value={pillarId ?? ""}
+              onChange={(e) => setPillarId(e.target.value === "" ? null : e.target.value)}
+              style={{ width: "100%", padding: "8px 10px", background: "#0d0d12", border: "1px solid #1f1f28", borderRadius: 8, color: "#e0e0e0", fontSize: 14 }}
+            >
+              <option value="">— sem pilar —</option>
+              {pillars.map((p) => (
+                <option key={p.id} value={p.id}>{p.title}</option>
+              ))}
+            </select>
+            {pillars.length === 0 && (
+              <p style={{ fontSize: 11, color: "#888", marginTop: 4 }}>Nenhum pilar cadastrado. Vá em Estratégia pra criar.</p>
+            )}
           </div>
 
           <div style={{ marginTop: 20 }}>
