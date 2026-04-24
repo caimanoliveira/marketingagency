@@ -182,3 +182,72 @@ strategy.get("/weekly-suggestions/:id", async (c) => {
   if (!s) return c.json({ error: "not_found" }, 404);
   return c.json(s);
 });
+
+// Helpers for approval
+const DAY_MAP: Record<string, number> = { seg: 0, ter: 1, qua: 2, qui: 3, sex: 4, sab: 5, dom: 6 };
+
+function parseWeekStart(weekStart: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStart)) return null;
+  const [y, m, d] = weekStart.split("-").map((n) => parseInt(n, 10));
+  return new Date(Date.UTC(y, m - 1, d));
+}
+
+function scheduleAtFromDayTime(weekStart: string, day: string, time: string): number | null {
+  const base = parseWeekStart(weekStart);
+  if (!base) return null;
+  const dow = DAY_MAP[day];
+  if (dow === undefined) return null;
+  const [h, mi] = time.split(":").map((n) => parseInt(n, 10));
+  if (!Number.isFinite(h) || !Number.isFinite(mi)) return null;
+  const dt = new Date(base.getTime());
+  dt.setUTCDate(dt.getUTCDate() + dow);
+  dt.setUTCHours(h, mi, 0, 0);
+  return dt.getTime();
+}
+
+const ApproveSchema = z.object({
+  acceptIndices: z.array(z.number().int().nonnegative()).optional(),
+});
+
+strategy.post("/weekly-suggestions/:id/approve", async (c) => {
+  const userId = c.get("userId");
+  const id = c.req.param("id");
+  let parsed;
+  try { parsed = ApproveSchema.parse(await c.req.json().catch(() => ({}))); }
+  catch { return c.json({ error: "invalid_request" }, 400); }
+
+  const suggestion = await getWeeklySuggestion(c.env.DB, userId, id);
+  if (!suggestion) return c.json({ error: "not_found" }, 404);
+
+  const indices = parsed.acceptIndices ?? suggestion.posts.map((_, i) => i);
+  const selected = indices
+    .map((i) => ({ idx: i, post: suggestion.posts[i] }))
+    .filter((x) => x.post !== undefined);
+
+  if (selected.length === 0) return c.json({ error: "nothing_to_approve" }, 400);
+
+  const createdPostIds: string[] = [];
+  const now = Date.now();
+
+  for (const { post } of selected) {
+    const postId = randomId("p");
+    await c.env.DB.prepare(
+      "INSERT INTO posts (id, user_id, body, status, created_at, updated_at) VALUES (?, ?, ?, 'draft', ?, ?)"
+    ).bind(postId, userId, post.body, now, now).run();
+
+    const scheduledAt = scheduleAtFromDayTime(suggestion.weekStart, post.day, post.time);
+    const status = scheduledAt !== null && scheduledAt > now ? "scheduled" : "pending";
+    const targetId = `t_${postId}_${post.network}`;
+
+    await c.env.DB.prepare(
+      "INSERT INTO post_targets (id, post_id, network, status, scheduled_at, attempts) VALUES (?, ?, ?, ?, ?, 0)"
+    ).bind(targetId, postId, post.network, status, scheduledAt).run();
+
+    createdPostIds.push(postId);
+  }
+
+  await c.env.DB.prepare("UPDATE weekly_suggestions SET status = 'approved', approved_at = ? WHERE id = ?")
+    .bind(now, id).run();
+
+  return c.json({ createdPostIds });
+});
