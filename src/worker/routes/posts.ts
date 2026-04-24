@@ -94,6 +94,7 @@ async function hydratePost(env: Env, row: PostRow): Promise<Post> {
     body: row.body,
     mediaId: row.media_id,
     media,
+    pillarId: row.pillar_id,
     status: row.status as Post["status"],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -117,6 +118,7 @@ posts.post("/", async (c) => {
     userId,
     body: parsed.body,
     mediaId: parsed.mediaId ?? null,
+    pillarId: parsed.pillarId ?? null,
   });
   if (parsed.networks && parsed.networks.length > 0) {
     await setPostTargets(c.env.DB, id, parsed.networks);

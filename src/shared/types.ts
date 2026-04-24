@@ -38,6 +38,7 @@ export interface Post {
   body: string;
   mediaId: string | null;
   media: Media | null;
+  pillarId: string | null;
   status: PostStatus;
   createdAt: number;
   updatedAt: number;
@@ -59,11 +60,13 @@ export interface PostListItem {
 export interface CreatePostRequest {
   body?: string;
   mediaId?: string | null;
+  pillarId?: string | null;
   networks?: Network[];
 }
 export interface UpdatePostRequest {
   body?: string;
   mediaId?: string | null;
+  pillarId?: string | null;
 }
 export interface UpdateTargetRequest {
   bodyOverride?: string | null;
@@ -236,6 +239,19 @@ export interface ContentPillar {
   color: string | null;
   position: number;
   createdAt: number;
+}
+
+export interface PillarPerformance {
+  pillarId: string;
+  title: string;
+  color: string | null;
+  position: number;
+  postCount: number;
+  avgEngagementRate: number | null;
+  totalReach: number;
+  totalLikes: number;
+  totalComments: number;
+  weekly: Array<{ weekStart: string; avgEngagementRate: number | null; postCount: number }>;
 }
 
 export interface InspirationSource {

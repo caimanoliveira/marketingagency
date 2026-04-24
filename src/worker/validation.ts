@@ -5,12 +5,14 @@ export const NetworkSchema = z.enum(["instagram", "tiktok", "linkedin"]);
 export const CreatePostSchema = z.object({
   body: z.string().max(5000).default(""),
   mediaId: z.string().nullable().optional(),
+  pillarId: z.string().nullable().optional(),
   networks: z.array(NetworkSchema).optional().default([]),
 });
 
 export const UpdatePostSchema = z.object({
   body: z.string().max(5000).optional(),
   mediaId: z.string().nullable().optional(),
+  pillarId: z.string().nullable().optional(),
   status: z.enum(["draft", "scheduled", "published", "failed"]).optional(),
 });
 
