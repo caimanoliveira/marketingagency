@@ -5,7 +5,9 @@ import { requireAuth } from "../middleware/requireAuth";
 import {
   upsertPillar, listPillars, deletePillar,
   addSource, listSources, removeSource,
+  getWeeklySuggestion, listWeeklySuggestions,
 } from "../db/queries";
+import { generateWeeklyPlan } from "../ai/strategy";
 
 export const strategy = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 strategy.use("*", requireAuth);
@@ -140,4 +142,43 @@ strategy.delete("/sources/:id", async (c) => {
   const ok = await removeSource(c.env.DB, userId, c.req.param("id"));
   if (!ok) return c.json({ error: "not_found" }, 404);
   return c.json({ ok: true });
+});
+
+const GenerateSchema = z.object({
+  theme: z.string().max(200).optional(),
+  weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+});
+
+strategy.post("/generate", async (c) => {
+  const userId = c.get("userId");
+  let parsed;
+  try { parsed = GenerateSchema.parse(await c.req.json().catch(() => ({}))); }
+  catch { return c.json({ error: "invalid_request" }, 400); }
+
+  try {
+    const { suggestionId, weekStart } = await generateWeeklyPlan(c.env, userId, {
+      theme: parsed.theme ?? null,
+      weekStart: parsed.weekStart ?? null,
+    });
+    const suggestion = await getWeeklySuggestion(c.env.DB, userId, suggestionId);
+    return c.json(suggestion);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "unknown";
+    console.error("strategy generate", e);
+    return c.json({ error: "generation_failed", detail: msg }, 502);
+  }
+});
+
+strategy.get("/weekly-suggestions", async (c) => {
+  const userId = c.get("userId");
+  const limit = Math.max(1, Math.min(20, parseInt(c.req.query("limit") ?? "10", 10) || 10));
+  const items = await listWeeklySuggestions(c.env.DB, userId, limit);
+  return c.json({ items });
+});
+
+strategy.get("/weekly-suggestions/:id", async (c) => {
+  const userId = c.get("userId");
+  const s = await getWeeklySuggestion(c.env.DB, userId, c.req.param("id"));
+  if (!s) return c.json({ error: "not_found" }, 404);
+  return c.json(s);
 });
