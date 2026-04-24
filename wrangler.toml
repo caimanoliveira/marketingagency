@@ -27,7 +27,7 @@ META_REDIRECT_URL = "https://social-command.caimanvinicius.workers.dev/api/conne
 APP_ORIGIN = "https://social-command.caimanvinicius.workers.dev"
 
 [triggers]
-crons = ["*/1 * * * *", "0 3 * * *"]
+crons = ["*/1 * * * *", "0 3 * * *", "0 6 * * 1"]
 
 [[queues.producers]]
 binding = "PUBLISH_QUEUE"

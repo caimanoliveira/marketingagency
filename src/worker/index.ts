@@ -53,7 +53,11 @@ app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw));
 export default {
   fetch: app.fetch.bind(app),
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
-    if (controller.cron === "0 3 * * *") {
+    const cron = controller.cron;
+    if (cron === "0 6 * * 1") {
+      const { generateWeeklyPlanForAllUsers } = await import("./scheduler/strategy-cron");
+      ctx.waitUntil(generateWeeklyPlanForAllUsers(env).then((r) => console.log("strategy cron:", r)));
+    } else if (cron === "0 3 * * *") {
       const { collectMetrics } = await import("./analytics/collect");
       ctx.waitUntil(collectMetrics(env).then((r) => console.log(`analytics: ${r.usersProcessed} users, ${r.errors.length} errors`)));
     } else {
