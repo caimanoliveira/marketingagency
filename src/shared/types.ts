@@ -228,3 +228,44 @@ export interface WoWComparison {
     postsPublishedPct: number | null;
   };
 }
+
+export interface ContentPillar {
+  id: string;
+  title: string;
+  description: string | null;
+  color: string | null;
+  position: number;
+  createdAt: number;
+}
+
+export interface InspirationSource {
+  id: string;
+  network: Network;
+  username: string;
+  note: string | null;
+  addedAt: number;
+}
+
+export interface SuggestedPost {
+  day: "seg" | "ter" | "qua" | "qui" | "sex" | "sab" | "dom";
+  time: string;
+  network: Network;
+  pillarId: string | null;
+  format: string;
+  hook: string;
+  body: string;
+  mediaSuggestion: string;
+}
+
+export interface WeeklySuggestion {
+  id: string;
+  weekStart: string;
+  theme: string | null;
+  status: "pending" | "approved" | "discarded";
+  rationale: string | null;
+  posts: SuggestedPost[];
+  createdAt: number;
+  approvedAt: number | null;
+  model: string;
+  tokens: { input: number | null; output: number | null; cached: number | null };
+}

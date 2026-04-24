@@ -866,3 +866,195 @@ export async function summaryForRange(
     contentMix,
   };
 }
+
+// ---- Content Pillars ----
+
+export interface ContentPillarRow {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  color: string | null;
+  position: number;
+  created_at: number;
+}
+
+export async function upsertPillar(
+  db: D1Database,
+  params: { id: string; userId: string; title: string; description: string | null; color: string | null; position: number }
+): Promise<void> {
+  await db.prepare(
+    `INSERT INTO content_pillars (id, user_id, title, description, color, position, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       title = excluded.title,
+       description = excluded.description,
+       color = excluded.color,
+       position = excluded.position`
+  ).bind(params.id, params.userId, params.title, params.description, params.color, params.position, Date.now()).run();
+}
+
+export async function listPillars(db: D1Database, userId: string): Promise<ContentPillarRow[]> {
+  const { results } = await db.prepare(
+    "SELECT * FROM content_pillars WHERE user_id = ? ORDER BY position ASC, created_at ASC"
+  ).bind(userId).all<ContentPillarRow>();
+  return results ?? [];
+}
+
+export async function deletePillar(db: D1Database, userId: string, id: string): Promise<boolean> {
+  const existing = await db.prepare("SELECT id FROM content_pillars WHERE id = ? AND user_id = ?").bind(id, userId).first();
+  if (!existing) return false;
+  await db.prepare("DELETE FROM content_pillars WHERE id = ?").bind(id).run();
+  return true;
+}
+
+// ---- Inspiration Sources ----
+
+export interface InspirationSourceRow {
+  id: string;
+  user_id: string;
+  network: string;
+  username: string;
+  note: string | null;
+  added_at: number;
+}
+
+export async function addSource(
+  db: D1Database,
+  params: { id: string; userId: string; network: string; username: string; note: string | null }
+): Promise<void> {
+  await db.prepare(
+    `INSERT INTO inspiration_sources (id, user_id, network, username, note, added_at)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT(user_id, network, username) DO UPDATE SET note = excluded.note`
+  ).bind(params.id, params.userId, params.network, params.username, params.note, Date.now()).run();
+}
+
+export async function listSources(db: D1Database, userId: string): Promise<InspirationSourceRow[]> {
+  const { results } = await db.prepare(
+    "SELECT * FROM inspiration_sources WHERE user_id = ? ORDER BY username ASC"
+  ).bind(userId).all<InspirationSourceRow>();
+  return results ?? [];
+}
+
+export async function removeSource(db: D1Database, userId: string, id: string): Promise<boolean> {
+  const existing = await db.prepare("SELECT id FROM inspiration_sources WHERE id = ? AND user_id = ?").bind(id, userId).first();
+  if (!existing) return false;
+  await db.prepare("DELETE FROM inspiration_sources WHERE id = ?").bind(id).run();
+  return true;
+}
+
+// ---- Weekly Suggestions ----
+
+export interface WeeklySuggestionRow {
+  id: string;
+  user_id: string;
+  week_start: string;
+  theme: string | null;
+  status: string;
+  suggestions_json: string;
+  rationale: string | null;
+  model: string;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  cached_tokens: number | null;
+  created_at: number;
+  approved_at: number | null;
+}
+
+export interface SuggestedPostJson {
+  day: string;
+  time: string;
+  network: string;
+  pillarId: string | null;
+  format: string;
+  hook: string;
+  body: string;
+  mediaSuggestion: string;
+}
+
+export interface PublicWeeklySuggestion {
+  id: string;
+  weekStart: string;
+  theme: string | null;
+  status: string;
+  rationale: string | null;
+  posts: SuggestedPostJson[];
+  createdAt: number;
+  approvedAt: number | null;
+  model: string;
+  tokens: { input: number | null; output: number | null; cached: number | null };
+}
+
+export async function saveWeeklySuggestion(
+  db: D1Database,
+  params: {
+    id: string; userId: string; weekStart: string; theme: string | null;
+    posts: SuggestedPostJson[]; rationale: string | null; model: string;
+    inputTokens: number | null; outputTokens: number | null; cachedTokens: number | null;
+  }
+): Promise<void> {
+  const now = Date.now();
+  await db.prepare(
+    `INSERT INTO weekly_suggestions (id, user_id, week_start, theme, status, suggestions_json, rationale, model, input_tokens, output_tokens, cached_tokens, created_at)
+     VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(user_id, week_start) DO UPDATE SET
+       theme = excluded.theme,
+       status = 'pending',
+       suggestions_json = excluded.suggestions_json,
+       rationale = excluded.rationale,
+       model = excluded.model,
+       input_tokens = excluded.input_tokens,
+       output_tokens = excluded.output_tokens,
+       cached_tokens = excluded.cached_tokens,
+       created_at = excluded.created_at,
+       approved_at = NULL`
+  ).bind(
+    params.id, params.userId, params.weekStart, params.theme,
+    JSON.stringify(params.posts), params.rationale, params.model,
+    params.inputTokens, params.outputTokens, params.cachedTokens, now
+  ).run();
+}
+
+function rowToPublicSuggestion(row: WeeklySuggestionRow): PublicWeeklySuggestion {
+  let posts: SuggestedPostJson[] = [];
+  try { posts = JSON.parse(row.suggestions_json) as SuggestedPostJson[]; } catch {}
+  return {
+    id: row.id,
+    weekStart: row.week_start,
+    theme: row.theme,
+    status: row.status,
+    rationale: row.rationale,
+    posts,
+    createdAt: row.created_at,
+    approvedAt: row.approved_at,
+    model: row.model,
+    tokens: { input: row.input_tokens, output: row.output_tokens, cached: row.cached_tokens },
+  };
+}
+
+export async function getWeeklySuggestion(db: D1Database, userId: string, id: string): Promise<PublicWeeklySuggestion | null> {
+  const row = await db.prepare(
+    "SELECT * FROM weekly_suggestions WHERE id = ? AND user_id = ?"
+  ).bind(id, userId).first<WeeklySuggestionRow>();
+  return row ? rowToPublicSuggestion(row) : null;
+}
+
+export async function listWeeklySuggestions(
+  db: D1Database,
+  userId: string,
+  limit: number
+): Promise<PublicWeeklySuggestion[]> {
+  const { results } = await db.prepare(
+    "SELECT * FROM weekly_suggestions WHERE user_id = ? ORDER BY week_start DESC LIMIT ?"
+  ).bind(userId, limit).all<WeeklySuggestionRow>();
+  return (results ?? []).map(rowToPublicSuggestion);
+}
+
+export async function markSuggestionApproved(db: D1Database, userId: string, id: string): Promise<boolean> {
+  const existing = await db.prepare("SELECT id FROM weekly_suggestions WHERE id = ? AND user_id = ?").bind(id, userId).first();
+  if (!existing) return false;
+  await db.prepare("UPDATE weekly_suggestions SET status = 'approved', approved_at = ? WHERE id = ?")
+    .bind(Date.now(), id).run();
+  return true;
+}
