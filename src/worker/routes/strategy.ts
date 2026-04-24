@@ -9,6 +9,7 @@ import {
   getPillarPerformance, getPillarPerformanceWeekly,
 } from "../db/queries";
 import { generateWeeklyPlan } from "../ai/strategy";
+import { backfillPillars } from "../ai/pillar-classify";
 
 export const strategy = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 strategy.use("*", requireAuth);
@@ -103,6 +104,17 @@ strategy.delete("/pillars/:id", async (c) => {
   const ok = await deletePillar(c.env.DB, userId, c.req.param("id"));
   if (!ok) return c.json({ error: "not_found" }, 404);
   return c.json({ ok: true });
+});
+
+strategy.post("/backfill-pillars", async (c) => {
+  const userId = c.get("userId");
+  try {
+    const result = await backfillPillars(c.env, userId);
+    return c.json(result);
+  } catch (e) {
+    console.error("backfill-pillars failed", e);
+    return c.json({ error: "backfill_failed" }, 502);
+  }
 });
 
 strategy.get("/pillars/performance", async (c) => {

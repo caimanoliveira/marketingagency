@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 
 export const MODEL = "claude-sonnet-4-6";
+export const FAST_MODEL = "claude-haiku-4-5-20251001";
 
 export interface CallResult<T> {
   data: T;
@@ -12,13 +13,14 @@ export interface CallOptions {
   system: string;
   user: string;
   maxTokens?: number;
+  model?: string;
 }
 
 export async function callClaudeJson<T>(apiKey: string, opts: CallOptions): Promise<CallResult<T>> {
   const client = new Anthropic({ apiKey });
   const start = Date.now();
   const resp = await client.messages.create({
-    model: MODEL,
+    model: opts.model ?? MODEL,
     max_tokens: opts.maxTokens ?? 2048,
     system: [{ type: "text", text: opts.system, cache_control: { type: "ephemeral" } }],
     messages: [{ role: "user", content: opts.user }],

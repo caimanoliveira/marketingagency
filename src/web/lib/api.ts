@@ -209,6 +209,8 @@ export const api = {
       weekly: Array<{ weekStart: string; avgEngagementRate: number | null; postCount: number }>;
     }>;
   }>(`/api/strategy/pillars/performance?window=${windowDays}`),
+  backfillPillars: () =>
+    json<{ attempted: number; classified: number; skipped: number }>("/api/strategy/backfill-pillars", "POST"),
 
   // Strategy — Sources
   listSources: () => req<{

@@ -25,9 +25,20 @@ export function Strategy() {
 }
 
 function PillarPerformanceStrip() {
+  const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["pillar-performance", 30],
     queryFn: () => api.pillarPerformance(30),
+  });
+
+  const backfillMut = useMutation({
+    mutationFn: () => api.backfillPillars(),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["pillar-performance", 30] });
+      qc.invalidateQueries({ queryKey: ["posts"] });
+      alert(`${r.classified}/${r.attempted} posts classificados (${r.skipped} sem match).`);
+    },
+    onError: (e: Error) => alert("Falhou: " + e.message),
   });
 
   if (isLoading) return null;
@@ -43,7 +54,18 @@ function PillarPerformanceStrip() {
 
   return (
     <section style={{ marginTop: 20, marginBottom: 24 }}>
-      <h2 style={{ fontSize: 16, marginBottom: 4 }}>Pillar ROI <span style={{ fontSize: 11, color: "#888", fontWeight: 400 }}>(últimos 30 dias)</span></h2>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+        <h2 style={{ fontSize: 16, margin: 0 }}>Pillar ROI <span style={{ fontSize: 11, color: "#888", fontWeight: 400 }}>(últimos 30 dias)</span></h2>
+        <button
+          className="btn-secondary"
+          style={{ fontSize: 11, padding: "4px 10px" }}
+          onClick={() => backfillMut.mutate()}
+          disabled={backfillMut.isPending}
+          title="Usa Claude Haiku pra classificar posts antigos sem pilar"
+        >
+          {backfillMut.isPending ? "Classificando..." : "Classificar posts antigos"}
+        </button>
+      </div>
       {!hasAnyEngagement && (
         <p style={{ fontSize: 12, color: "#888", marginBottom: 8 }}>
           Aprove posts da IA ou classifique posts antigos pra começar a ver performance por pilar.
