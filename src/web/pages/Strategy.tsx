@@ -16,10 +16,76 @@ export function Strategy() {
       <p style={{ color: "#888", fontSize: 13 }}>
         Defina seus pilares de conteúdo, adicione contas inspiracionais, e deixe a IA propor a agenda semanal.
       </p>
+      <PillarPerformanceStrip />
       <PillarsSection />
       <SourcesSection />
       <WeeklyPlanSection />
     </div>
+  );
+}
+
+function PillarPerformanceStrip() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["pillar-performance", 30],
+    queryFn: () => api.pillarPerformance(30),
+  });
+
+  if (isLoading) return null;
+  const items = data?.items ?? [];
+  if (items.length === 0) return null;
+
+  const hasAnyEngagement = items.some((i) => i.avgEngagementRate !== null && i.avgEngagementRate > 0);
+  const sorted = [...items].sort((a, b) => {
+    const av = a.avgEngagementRate ?? -1;
+    const bv = b.avgEngagementRate ?? -1;
+    return bv - av;
+  });
+
+  return (
+    <section style={{ marginTop: 20, marginBottom: 24 }}>
+      <h2 style={{ fontSize: 16, marginBottom: 4 }}>Pillar ROI <span style={{ fontSize: 11, color: "#888", fontWeight: 400 }}>(últimos 30 dias)</span></h2>
+      {!hasAnyEngagement && (
+        <p style={{ fontSize: 12, color: "#888", marginBottom: 8 }}>
+          Aprove posts da IA ou classifique posts antigos pra começar a ver performance por pilar.
+        </p>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
+        {sorted.map((p) => (
+          <div key={p.pillarId} style={{ background: "#111118", border: "1px solid #1f1f28", borderRadius: 10, padding: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 6, height: 20, background: p.color ?? "#6e56cf", borderRadius: 2 }} />
+              <div style={{ fontSize: 13, fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</div>
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: "#eee" }}>
+              {p.avgEngagementRate === null ? "—" : `${(p.avgEngagementRate * 100).toFixed(1)}%`}
+            </div>
+            <div style={{ display: "flex", gap: 8, fontSize: 11, color: "#888" }}>
+              <span>{p.postCount} post{p.postCount === 1 ? "" : "s"}</span>
+              <span>·</span>
+              <span>{p.totalReach.toLocaleString("pt-BR")} alcance</span>
+            </div>
+            {p.weekly.length > 0 && <Sparkline points={p.weekly} />}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Sparkline({ points }: { points: Array<{ weekStart: string; avgEngagementRate: number | null; postCount: number }> }) {
+  const values = points.map((p) => p.avgEngagementRate ?? 0);
+  if (values.length === 0) return null;
+  const max = Math.max(...values, 0.0001);
+  const w = 100;
+  const h = 24;
+  const step = values.length > 1 ? w / (values.length - 1) : 0;
+  const path = values
+    .map((v, i) => `${i === 0 ? "M" : "L"}${(i * step).toFixed(1)},${(h - (v / max) * h).toFixed(1)}`)
+    .join(" ");
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} style={{ opacity: 0.8 }}>
+      <path d={path} fill="none" stroke="#6e56cf" strokeWidth={1.5} />
+    </svg>
   );
 }
 

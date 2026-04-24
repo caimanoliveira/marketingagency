@@ -6,6 +6,7 @@ import {
   upsertPillar, listPillars, deletePillar,
   addSource, listSources, removeSource,
   getWeeklySuggestion, listWeeklySuggestions,
+  getPillarPerformance, getPillarPerformanceWeekly,
 } from "../db/queries";
 import { generateWeeklyPlan } from "../ai/strategy";
 
@@ -102,6 +103,40 @@ strategy.delete("/pillars/:id", async (c) => {
   const ok = await deletePillar(c.env.DB, userId, c.req.param("id"));
   if (!ok) return c.json({ error: "not_found" }, 404);
   return c.json({ ok: true });
+});
+
+strategy.get("/pillars/performance", async (c) => {
+  const userId = c.get("userId");
+  const windowParam = parseInt(c.req.query("window") ?? "30", 10);
+  const window = Number.isFinite(windowParam) && windowParam > 0 && windowParam <= 365 ? windowParam : 30;
+
+  const [rows, weeklyRows] = await Promise.all([
+    getPillarPerformance(c.env.DB, userId, window),
+    getPillarPerformanceWeekly(c.env.DB, userId, 4),
+  ]);
+
+  const weeklyByPillar = new Map<string, Array<{ weekStart: string; avgEngagementRate: number | null; postCount: number }>>();
+  for (const w of weeklyRows) {
+    const list = weeklyByPillar.get(w.pillar_id) ?? [];
+    list.push({ weekStart: w.week_start, avgEngagementRate: w.avg_engagement_rate, postCount: w.post_count });
+    weeklyByPillar.set(w.pillar_id, list);
+  }
+
+  return c.json({
+    window,
+    items: rows.map((r) => ({
+      pillarId: r.pillar_id,
+      title: r.title,
+      color: r.color,
+      position: r.position,
+      postCount: r.post_count ?? 0,
+      avgEngagementRate: r.avg_engagement_rate,
+      totalReach: r.total_reach ?? 0,
+      totalLikes: r.total_likes ?? 0,
+      totalComments: r.total_comments ?? 0,
+      weekly: weeklyByPillar.get(r.pillar_id) ?? [],
+    })),
+  });
 });
 
 // ---- Sources ----

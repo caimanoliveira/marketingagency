@@ -194,6 +194,21 @@ export const api = {
   updatePillar: (id: string, body: { title?: string; description?: string | null; color?: string | null; position?: number }) =>
     json<{ id: string; title: string; description: string | null; color: string | null; position: number; createdAt: number }>(`/api/strategy/pillars/${id}`, "PATCH", body),
   deletePillar: (id: string) => json<{ ok: true }>(`/api/strategy/pillars/${id}`, "DELETE"),
+  pillarPerformance: (windowDays = 30) => req<{
+    window: number;
+    items: Array<{
+      pillarId: string;
+      title: string;
+      color: string | null;
+      position: number;
+      postCount: number;
+      avgEngagementRate: number | null;
+      totalReach: number;
+      totalLikes: number;
+      totalComments: number;
+      weekly: Array<{ weekStart: string; avgEngagementRate: number | null; postCount: number }>;
+    }>;
+  }>(`/api/strategy/pillars/performance?window=${windowDays}`),
 
   // Strategy — Sources
   listSources: () => req<{

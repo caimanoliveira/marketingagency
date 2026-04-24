@@ -163,7 +163,7 @@ describe("POST /api/strategy/weekly-suggestions/:id/approve", () => {
     const rows = await env.DB.prepare(
       "SELECT body, pillar_id FROM posts WHERE user_id = ? ORDER BY body"
     ).bind(USER).all<{ body: string; pillar_id: string | null }>();
-    const byBody = Object.fromEntries((rows.results ?? []).map((r) => [r.body, r.pillar_id]));
+    const byBody = Object.fromEntries((rows.results ?? []).map((r: { body: string; pillar_id: string | null }) => [r.body, r.pillar_id]));
     expect(byBody["good pillar"]).toBe("pil_real");
     expect(byBody["bad pillar"]).toBeNull();
     expect(byBody["no pillar"]).toBeNull();
