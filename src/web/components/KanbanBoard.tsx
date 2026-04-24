@@ -1,4 +1,5 @@
 import { DndContext, DragEndEvent, useDraggable, useDroppable, closestCorners } from "@dnd-kit/core";
+import { toasts } from "../ui/toast";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
@@ -20,7 +21,11 @@ export function KanbanBoard({ posts }: Props) {
   const updateStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: Status }) =>
       api.updatePostStatus(id, status),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["posts"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["posts"] });
+      toasts.success("Status atualizado");
+    },
+    onError: () => toasts.error("Falha ao mover"),
   });
 
   function onDragEnd(e: DragEndEvent) {

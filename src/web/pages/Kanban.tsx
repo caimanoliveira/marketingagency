@@ -8,12 +8,12 @@ export function Kanban() {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+      <header style={{ marginBottom: 24 }}>
         <h1>Kanban</h1>
-        <p style={{ color: "#888", fontSize: 13, margin: 0 }}>
+        <p style={{ color: "var(--lume-text-muted)", fontSize: 14, margin: "4px 0 0" }}>
           Arraste cards entre colunas pra mudar status. Duplo-clique abre o editor.
         </p>
-      </div>
+      </header>
       {isLoading && <SkeletonRow count={4} />}
       {!isLoading && <KanbanBoard posts={data?.items ?? []} />}
     </div>
