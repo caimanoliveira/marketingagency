@@ -64,6 +64,9 @@ export default {
     } else if (cron === "0 3 * * *") {
       const { collectMetrics } = await import("./analytics/collect");
       ctx.waitUntil(collectMetrics(env).then((r) => console.log(`analytics: ${r.usersProcessed} users, ${r.errors.length} errors`)));
+    } else if (cron === "30 4 * * *") {
+      const { classifyPendingForAllUsers } = await import("./scheduler/sentiment-cron");
+      ctx.waitUntil(classifyPendingForAllUsers(env).then((r) => console.log(`sentiment cron: ${r.usersProcessed} users, ${r.classified} classified, ${r.errors.length} errors`)));
     } else {
       const { scanAndEnqueue } = await import("./scheduler/cron");
       ctx.waitUntil(scanAndEnqueue(env).then((n) => console.log(`cron enqueued ${n} jobs`)));
