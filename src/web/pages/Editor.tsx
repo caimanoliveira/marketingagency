@@ -130,7 +130,7 @@ export function Editor() {
 
       <div className="editor-grid">
         <div className="editor-pane">
-          <AIAssistant body={body} onApply={(text) => setBody(text)} />
+          <AIAssistant body={body} onApply={(text) => setBody(text)} postId={id ?? null} />
           <label style={{ fontSize: 14, color: "#aaa", marginBottom: 8, display: "block" }}>Copy base</label>
           <textarea
             value={body}

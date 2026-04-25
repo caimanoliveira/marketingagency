@@ -3,7 +3,7 @@ import { callClaudeJson, MODEL } from "./claude";
 import { systemForStrategy, userForStrategy } from "./strategy-prompts";
 import {
   listPillars, listSources, getMetaConnection, saveWeeklySuggestion,
-  getPillarPerformance,
+  getPillarPerformance, getWinningVariants,
   type SuggestedPostJson, type ContentPillarRow, type InspirationSourceRow,
 } from "../db/queries";
 import { fetchCompetitorBasic } from "../integrations/meta";
@@ -36,6 +36,13 @@ export async function generateWeeklyPlan(
     title: r.title,
     postCount: r.post_count ?? 0,
     avgEngagementRate: r.avg_engagement_rate,
+  }));
+
+  const winnerRows = await getWinningVariants(env.DB, userId, 14, 5);
+  const winningVariants = winnerRows.map((w) => ({
+    text: w.variant_text,
+    network: w.network,
+    engagementRate: w.engagement_rate,
   }));
 
   // Top posts (last 30d)
@@ -113,6 +120,7 @@ export async function generateWeeklyPlan(
     recentOwnPosts,
     targetNetworks,
     pillarPerformance,
+    winningVariants,
   });
 
   const result = await callClaudeJson<{ rationale: string; posts: Array<{ day: string; time: string; network: string; pillarId: string | null; format: string; hook: string; body: string; media_suggestion: string }> }>(

@@ -999,6 +999,55 @@ export async function getPillarPerformanceWeekly(
   return results ?? [];
 }
 
+export interface AIVariantOutcomeRow {
+  id: string;
+  user_id: string;
+  network: string | null;
+  tone: string | null;
+  variant_text: string;
+  post_id: string | null;
+  applied_at: number;
+}
+
+export async function recordVariantOutcome(
+  db: D1Database,
+  params: { id: string; userId: string; network: string | null; tone: string | null; variantText: string; postId: string | null }
+): Promise<void> {
+  await db.prepare(
+    `INSERT INTO ai_variant_outcomes (id, user_id, network, tone, variant_text, post_id, applied_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).bind(params.id, params.userId, params.network, params.tone, params.variantText, params.postId, Date.now()).run();
+}
+
+export interface WinningVariantRow {
+  variant_text: string;
+  network: string | null;
+  engagement_rate: number | null;
+  applied_at: number;
+}
+
+export async function getWinningVariants(
+  db: D1Database,
+  userId: string,
+  windowDays: number,
+  limit: number
+): Promise<WinningVariantRow[]> {
+  const cutoff = Date.now() - windowDays * 86_400_000;
+  const { results } = await db.prepare(
+    `SELECT v.variant_text, v.network, v.applied_at,
+            (SELECT pm.engagement_rate
+               FROM post_metrics pm
+               JOIN post_targets t ON t.id = pm.target_id
+               WHERE t.post_id = v.post_id
+               ORDER BY pm.snapshot_at DESC LIMIT 1) AS engagement_rate
+     FROM ai_variant_outcomes v
+     WHERE v.user_id = ? AND v.applied_at >= ? AND v.post_id IS NOT NULL
+     ORDER BY engagement_rate DESC NULLS LAST, v.applied_at DESC
+     LIMIT ?`
+  ).bind(userId, cutoff, limit).all<WinningVariantRow>();
+  return results ?? [];
+}
+
 export interface SendTimeBucketRow {
   weekday: number;          // 0=Sunday … 6=Saturday (SQLite strftime %w)
   hour: number;             // 0..23

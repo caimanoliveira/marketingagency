@@ -19,6 +19,12 @@ export interface PillarPerformanceSample {
   avgEngagementRate: number | null;
 }
 
+export interface WinningVariantSample {
+  text: string;
+  network: string | null;
+  engagementRate: number | null;
+}
+
 export function systemForStrategy(): string {
   return [
     "Você é um estrategista de conteúdo sênior que monta agendas editoriais semanais para redes sociais (Instagram, TikTok, LinkedIn).",
@@ -41,6 +47,7 @@ export function userForStrategy(args: {
   recentOwnPosts: Array<{ network: string; body: string; publishedAt: number | null }>;
   targetNetworks: string[];
   pillarPerformance?: PillarPerformanceSample[];
+  winningVariants?: WinningVariantSample[];
 }): string {
   const parts: string[] = [];
   parts.push(`Semana começando: ${args.weekStart}`);
@@ -85,6 +92,15 @@ export function userForStrategy(args: {
     }
   } else if (args.radarSources.length > 0) {
     parts.push(`Radar cadastrado mas sem amostras recentes: ${args.radarSources.map((s) => "@" + s.username).join(", ")}`);
+  }
+
+  if (args.winningVariants && args.winningVariants.length > 0) {
+    parts.push("Ganchos vencedores das últimas 2 semanas (variantes da IA que viraram post):");
+    for (const v of args.winningVariants) {
+      const tag = v.network ? `[${v.network}]` : "[—]";
+      const eng = v.engagementRate !== null ? `${(v.engagementRate * 100).toFixed(1)}%` : "—";
+      parts.push(`  - ${tag} (${eng}) ${v.text.slice(0, 120)}`);
+    }
   }
 
   if (args.recentOwnPosts.length > 0) {

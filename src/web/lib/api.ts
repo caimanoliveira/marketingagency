@@ -184,6 +184,8 @@ export const api = {
     previous: { totalReach: number; totalEngagement: number; followerGrowth: number; postsPublished: number };
     delta: { totalReachPct: number | null; totalEngagementPct: number | null; followerGrowthPct: number | null; postsPublishedPct: number | null };
   }>("/api/analytics/wow"),
+  recordVariantApplied: (body: { variantText: string; network?: Network | null; tone?: "formal" | "casual" | "playful" | "direct" | null; postId?: string | null }) =>
+    json<{ ok: true }>("/api/ai/variants/applied", "POST", body),
   sendTimes: (network?: "instagram" | "linkedin" | "tiktok", windowDays = 30) => req<{
     window: number;
     network: string | null;
