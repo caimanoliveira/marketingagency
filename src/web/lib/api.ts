@@ -97,7 +97,7 @@ export const api = {
   refreshInstagram: () => json<{ ok: true; count: number }>("/api/connections/instagram/refresh", "POST"),
   disconnectInstagram: () => json<{ ok: true }>("/api/connections/instagram", "DELETE"),
 
-  updatePostStatus: (id: string, status: "draft" | "scheduled" | "published" | "failed") =>
+  updatePostStatus: (id: string, status: "draft" | "needs_review" | "scheduled" | "published" | "failed") =>
     json<unknown>(`/api/posts/${id}`, "PATCH", { status }),
 
   postsByMonth: (year: number, month0: number) => {

@@ -5,12 +5,13 @@ import { api } from "../lib/api";
 import { NETWORKS } from "../lib/networks";
 import type { PostListItem } from "../../shared/types";
 
-type Status = "draft" | "scheduled" | "published" | "failed";
+type Status = "draft" | "needs_review" | "scheduled" | "published" | "failed";
 const COLUMNS: { id: Status; label: string }[] = [
-  { id: "draft",     label: "Rascunho" },
-  { id: "scheduled", label: "Agendado" },
-  { id: "published", label: "Publicado" },
-  { id: "failed",    label: "Falhou" },
+  { id: "draft",        label: "Rascunho" },
+  { id: "needs_review", label: "Em revisão" },
+  { id: "scheduled",    label: "Agendado" },
+  { id: "published",    label: "Publicado" },
+  { id: "failed",       label: "Falhou" },
 ];
 
 interface Props { posts: PostListItem[]; }
@@ -33,7 +34,7 @@ export function KanbanBoard({ posts }: Props) {
   }
 
   const grouped: Record<Status, PostListItem[]> = {
-    draft: [], scheduled: [], published: [], failed: [],
+    draft: [], needs_review: [], scheduled: [], published: [], failed: [],
   };
   for (const p of posts) {
     if (p.status in grouped) grouped[p.status as Status].push(p);
