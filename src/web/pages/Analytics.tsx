@@ -7,6 +7,7 @@ import { KpiCard, formatNumber } from "../components/KpiCard";
 import { SkeletonRow } from "../components/Skeleton";
 import { WoWChips } from "../components/WoWChips";
 import { TopPostsCard } from "../components/TopPostsCard";
+import { SendTimesHeatmap } from "../components/SendTimesHeatmap";
 
 type Period = 7 | 30 | 90;
 
@@ -142,6 +143,7 @@ export function Analytics() {
           )}
 
           <TopPostsCard />
+          <SendTimesHeatmap />
         </>
       )}
     </div>
