@@ -3,7 +3,7 @@ export interface MeResponse { userId: string; email: string; }
 export interface HealthResponse { ok: true; app: string; }
 
 export type Network = "instagram" | "tiktok" | "linkedin";
-export type PostStatus = "draft" | "scheduled" | "published" | "failed";
+export type PostStatus = "draft" | "needs_review" | "scheduled" | "published" | "failed";
 export type TargetStatus = "pending" | "scheduled" | "publishing" | "published" | "failed" | "ready_to_post";
 
 export interface Media {
@@ -38,6 +38,7 @@ export interface Post {
   body: string;
   mediaId: string | null;
   media: Media | null;
+  pillarId: string | null;
   status: PostStatus;
   createdAt: number;
   updatedAt: number;
@@ -59,11 +60,13 @@ export interface PostListItem {
 export interface CreatePostRequest {
   body?: string;
   mediaId?: string | null;
+  pillarId?: string | null;
   networks?: Network[];
 }
 export interface UpdatePostRequest {
   body?: string;
   mediaId?: string | null;
+  pillarId?: string | null;
 }
 export interface UpdateTargetRequest {
   bodyOverride?: string | null;
@@ -236,6 +239,64 @@ export interface ContentPillar {
   color: string | null;
   position: number;
   createdAt: number;
+}
+
+export type Sentiment = "positive" | "neutral" | "negative";
+
+export interface TopEngager {
+  handle: string;
+  network: Network;
+  commentCount: number;
+  positiveCount: number;
+  negativeCount: number;
+}
+
+export interface SentimentSummary {
+  positive: number;
+  neutral: number;
+  negative: number;
+  unclassified: number;
+}
+
+export interface ReviewLink {
+  token: string;
+  postId: string;
+  expiresAt: number;
+  usedAt: number | null;
+  decision: "approved" | "rejected" | null;
+  comment: string | null;
+  createdAt: number;
+}
+
+export interface PostComment {
+  id: string;
+  postId: string;
+  authorLabel: string;
+  body: string;
+  createdAt: number;
+}
+
+export interface ReviewView {
+  postId: string;
+  body: string;
+  pillarTitle: string | null;
+  networks: Network[];
+  expired: boolean;
+  alreadyDecided: boolean;
+  decision: "approved" | "rejected" | null;
+}
+
+export interface PillarPerformance {
+  pillarId: string;
+  title: string;
+  color: string | null;
+  position: number;
+  postCount: number;
+  avgEngagementRate: number | null;
+  totalReach: number;
+  totalLikes: number;
+  totalComments: number;
+  weekly: Array<{ weekStart: string; avgEngagementRate: number | null; postCount: number }>;
 }
 
 export interface InspirationSource {

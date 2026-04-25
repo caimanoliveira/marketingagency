@@ -6,8 +6,10 @@ import {
   upsertPillar, listPillars, deletePillar,
   addSource, listSources, removeSource,
   getWeeklySuggestion, listWeeklySuggestions,
+  getPillarPerformance, getPillarPerformanceWeekly, getPillarPerformanceByNetwork,
 } from "../db/queries";
 import { generateWeeklyPlan } from "../ai/strategy";
+import { backfillPillars } from "../ai/pillar-classify";
 
 export const strategy = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 strategy.use("*", requireAuth);
@@ -102,6 +104,60 @@ strategy.delete("/pillars/:id", async (c) => {
   const ok = await deletePillar(c.env.DB, userId, c.req.param("id"));
   if (!ok) return c.json({ error: "not_found" }, 404);
   return c.json({ ok: true });
+});
+
+strategy.post("/backfill-pillars", async (c) => {
+  const userId = c.get("userId");
+  try {
+    const result = await backfillPillars(c.env, userId);
+    return c.json(result);
+  } catch (e) {
+    console.error("backfill-pillars failed", e);
+    return c.json({ error: "backfill_failed" }, 502);
+  }
+});
+
+strategy.get("/pillars/performance", async (c) => {
+  const userId = c.get("userId");
+  const windowParam = parseInt(c.req.query("window") ?? "30", 10);
+  const window = Number.isFinite(windowParam) && windowParam > 0 && windowParam <= 365 ? windowParam : 30;
+
+  const [rows, weeklyRows, byNetworkRows] = await Promise.all([
+    getPillarPerformance(c.env.DB, userId, window),
+    getPillarPerformanceWeekly(c.env.DB, userId, 4),
+    getPillarPerformanceByNetwork(c.env.DB, userId, window),
+  ]);
+
+  const weeklyByPillar = new Map<string, Array<{ weekStart: string; avgEngagementRate: number | null; postCount: number }>>();
+  for (const w of weeklyRows) {
+    const list = weeklyByPillar.get(w.pillar_id) ?? [];
+    list.push({ weekStart: w.week_start, avgEngagementRate: w.avg_engagement_rate, postCount: w.post_count });
+    weeklyByPillar.set(w.pillar_id, list);
+  }
+
+  const networksByPillar = new Map<string, Array<{ network: string; postCount: number; avgEngagementRate: number | null }>>();
+  for (const n of byNetworkRows) {
+    const list = networksByPillar.get(n.pillar_id) ?? [];
+    list.push({ network: n.network, postCount: n.post_count, avgEngagementRate: n.avg_engagement_rate });
+    networksByPillar.set(n.pillar_id, list);
+  }
+
+  return c.json({
+    window,
+    items: rows.map((r) => ({
+      pillarId: r.pillar_id,
+      title: r.title,
+      color: r.color,
+      position: r.position,
+      postCount: r.post_count ?? 0,
+      avgEngagementRate: r.avg_engagement_rate,
+      totalReach: r.total_reach ?? 0,
+      totalLikes: r.total_likes ?? 0,
+      totalComments: r.total_comments ?? 0,
+      weekly: weeklyByPillar.get(r.pillar_id) ?? [],
+      byNetwork: networksByPillar.get(r.pillar_id) ?? [],
+    })),
+  });
 });
 
 // ---- Sources ----
@@ -229,11 +285,17 @@ strategy.post("/weekly-suggestions/:id/approve", async (c) => {
   const createdPostIds: string[] = [];
   const now = Date.now();
 
+  // Validate that any pillarId the LLM suggested actually belongs to this user.
+  // Unknown ids are silently dropped to null so a hallucinated id doesn't block approval.
+  const ownedPillars = await listPillars(c.env.DB, userId);
+  const pillarIds = new Set(ownedPillars.map((p) => p.id));
+
   for (const { post } of selected) {
     const postId = randomId("p");
+    const pillarId = post.pillarId && pillarIds.has(post.pillarId) ? post.pillarId : null;
     await c.env.DB.prepare(
-      "INSERT INTO posts (id, user_id, body, status, created_at, updated_at) VALUES (?, ?, ?, 'draft', ?, ?)"
-    ).bind(postId, userId, post.body, now, now).run();
+      "INSERT INTO posts (id, user_id, body, pillar_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'draft', ?, ?)"
+    ).bind(postId, userId, post.body, pillarId, now, now).run();
 
     const scheduledAt = scheduleAtFromDayTime(suggestion.weekStart, post.day, post.time);
     const status = scheduledAt !== null && scheduledAt > now ? "scheduled" : "pending";

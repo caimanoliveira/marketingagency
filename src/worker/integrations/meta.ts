@@ -287,3 +287,42 @@ export async function fetchCompetitorBasic(
     recentPostsSampled: sampled,
   };
 }
+
+export interface IgCommentRaw {
+  externalId: string;
+  username: string | null;
+  body: string;
+  postedAt: number | null;
+}
+
+/**
+ * Fetches recent comments on an IG media item via the Graph API.
+ * Requires `instagram_manage_comments` (or equivalent) on the page access token.
+ * Returns [] on any error so the collector can move on without aborting the batch.
+ */
+export async function fetchIgMediaComments(
+  igMediaId: string,
+  pageAccessToken: string,
+  limit = 30
+): Promise<IgCommentRaw[]> {
+  const url = new URL(`${GRAPH_V20}/${igMediaId}/comments`);
+  url.searchParams.set("fields", "id,username,text,timestamp");
+  url.searchParams.set("limit", String(limit));
+  url.searchParams.set("access_token", pageAccessToken);
+  let res: Response;
+  try {
+    res = await fetch(url.toString());
+  } catch {
+    return [];
+  }
+  if (!res.ok) return [];
+  const body = await res.json() as { data?: Array<{ id?: string; username?: string; text?: string; timestamp?: string }> };
+  return (body.data ?? [])
+    .filter((c) => c.id && c.text)
+    .map((c) => ({
+      externalId: c.id!,
+      username: c.username ?? null,
+      body: c.text!,
+      postedAt: c.timestamp ? Date.parse(c.timestamp) : null,
+    }));
+}

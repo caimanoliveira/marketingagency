@@ -8,7 +8,8 @@ import {
   systemForRewrite, userForRewrite,
   systemForTone, userForTone,
 } from "../ai/prompts";
-import { logAiGeneration } from "../db/queries";
+import { logAiGeneration, recordVariantOutcome } from "../db/queries";
+import { z } from "zod";
 import type {
   GenerateVariationsResponse,
   RewriteForNetworkResponse,
@@ -127,4 +128,27 @@ ai.post("/tone", async (c) => {
     console.error("[ai/tone]", err);
     return c.json({ error: "upstream_failed" }, 502);
   }
+});
+
+const VariantAppliedSchema = z.object({
+  variantText: z.string().min(1).max(5000),
+  network: z.enum(["instagram", "tiktok", "linkedin"]).nullable().optional(),
+  tone: z.enum(["formal", "casual", "playful", "direct"]).nullable().optional(),
+  postId: z.string().nullable().optional(),
+});
+
+ai.post("/variants/applied", async (c) => {
+  const userId = c.get("userId");
+  let parsed;
+  try { parsed = VariantAppliedSchema.parse(await c.req.json()); }
+  catch { return c.json({ error: "invalid_request" }, 400); }
+  await recordVariantOutcome(c.env.DB, {
+    id: randomId("vo"),
+    userId,
+    network: parsed.network ?? null,
+    tone: parsed.tone ?? null,
+    variantText: parsed.variantText,
+    postId: parsed.postId ?? null,
+  });
+  return c.json({ ok: true });
 });

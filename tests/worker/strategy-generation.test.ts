@@ -15,7 +15,7 @@ const USER = "u_sgen";
 
 const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, created_at INTEGER NOT NULL)`,
-  `CREATE TABLE IF NOT EXISTS posts (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', media_id TEXT, status TEXT NOT NULL DEFAULT 'draft', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS posts (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', media_id TEXT, pillar_id TEXT, status TEXT NOT NULL DEFAULT 'draft', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS post_targets (id TEXT PRIMARY KEY, post_id TEXT NOT NULL, network TEXT NOT NULL, body_override TEXT, scheduled_at INTEGER, published_at INTEGER, external_id TEXT, status TEXT NOT NULL DEFAULT 'pending', target_ref TEXT, last_error TEXT, attempts INTEGER NOT NULL DEFAULT 0)`,
   `CREATE TABLE IF NOT EXISTS post_metrics (id TEXT PRIMARY KEY, post_id TEXT NOT NULL, target_id TEXT NOT NULL, network TEXT NOT NULL, snapshot_at INTEGER NOT NULL, likes INTEGER, comments INTEGER, shares INTEGER, saved INTEGER, reach INTEGER, impressions INTEGER, engagement_rate REAL, extra_json TEXT, created_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS content_pillars (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, title TEXT NOT NULL, description TEXT, color TEXT, position INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL)`,
@@ -23,6 +23,8 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS weekly_suggestions (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, week_start TEXT NOT NULL, theme TEXT, status TEXT NOT NULL DEFAULT 'pending', suggestions_json TEXT NOT NULL, rationale TEXT, model TEXT NOT NULL, input_tokens INTEGER, output_tokens INTEGER, cached_tokens INTEGER, created_at INTEGER NOT NULL, approved_at INTEGER, UNIQUE(user_id, week_start))`,
   `CREATE TABLE IF NOT EXISTS meta_connections (id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE, fb_user_id TEXT NOT NULL, fb_user_name TEXT NOT NULL, access_token TEXT NOT NULL, expires_at INTEGER NOT NULL, scopes TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS instagram_accounts (id TEXT PRIMARY KEY, connection_id TEXT NOT NULL, ig_user_id TEXT NOT NULL, ig_username TEXT NOT NULL, fb_page_id TEXT NOT NULL, fb_page_name TEXT NOT NULL, fb_page_access_token TEXT NOT NULL, profile_picture_url TEXT, created_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS ai_variant_outcomes (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, network TEXT, tone TEXT, variant_text TEXT NOT NULL, post_id TEXT, applied_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS post_comments_raw (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, post_id TEXT NOT NULL, target_id TEXT NOT NULL, network TEXT NOT NULL, external_comment_id TEXT, commenter_handle TEXT, body TEXT NOT NULL, posted_at INTEGER, fetched_at INTEGER NOT NULL, sentiment TEXT, topics_json TEXT, classified_at INTEGER)`,
 ];
 
 async function authedCall(path: string, init?: RequestInit) {
@@ -98,6 +100,57 @@ describe("POST /api/strategy/generate", () => {
       body: JSON.stringify({ weekStart: "invalid-date" }),
     });
     expect(res.status).toBe(400);
+  });
+
+  it("injects pillar performance into the prompt when signal exists", async () => {
+    // Seed one pillar with 2 posts and metrics → avg engagement 0.15
+    await env.DB.prepare("INSERT INTO content_pillars (id, user_id, title, color, position, created_at) VALUES (?, ?, ?, ?, 0, ?)")
+      .bind("pil_hot", USER, "Hot Pillar", "#f00", Date.now()).run();
+    for (let i = 1; i <= 2; i++) {
+      await env.DB.prepare("INSERT INTO posts (id, user_id, body, pillar_id, status, created_at, updated_at) VALUES (?, ?, ?, 'pil_hot', 'published', ?, ?)")
+        .bind(`pp${i}`, USER, `x${i}`, Date.now(), Date.now()).run();
+      await env.DB.prepare("INSERT INTO post_targets (id, post_id, network, status, published_at) VALUES (?, ?, 'linkedin', 'published', ?)")
+        .bind(`tp${i}`, `pp${i}`, Date.now()).run();
+      await env.DB.prepare(
+        "INSERT INTO post_metrics (id, post_id, target_id, network, snapshot_at, likes, comments, engagement_rate, created_at) VALUES (?, ?, ?, 'linkedin', ?, ?, ?, ?, ?)"
+      ).bind(`mp${i}`, `pp${i}`, `tp${i}`, Date.now(), 10 * i, 2 * i, 0.1 * i, Date.now()).run();
+    }
+
+    callClaudeJson.mockResolvedValueOnce({
+      data: {
+        rationale: "r",
+        posts: [{ day: "seg", time: "09:00", network: "linkedin", pillarId: "pil_hot", format: "post", hook: "h", body: "b", media_suggestion: "m" }],
+      },
+      usage: { inputTokens: 10, outputTokens: 5, cachedTokens: 0 },
+      durationMs: 50,
+    });
+
+    await authedCall("/api/strategy/generate", { method: "POST", body: JSON.stringify({ weekStart: "2026-04-27" }) });
+
+    expect(callClaudeJson).toHaveBeenCalledTimes(1);
+    const callArgs = callClaudeJson.mock.calls[0];
+    const userPrompt = callArgs[1].user as string;
+    expect(userPrompt).toContain("Performance por pilar");
+    expect(userPrompt).toContain("pil_hot");
+    expect(userPrompt).toContain("Hot Pillar");
+  });
+
+  it("omits pillar performance section when no metrics yet", async () => {
+    await env.DB.prepare("INSERT INTO content_pillars (id, user_id, title, color, position, created_at) VALUES (?, ?, ?, ?, 0, ?)")
+      .bind("pil_cold", USER, "Cold Pillar", "#00f", Date.now()).run();
+
+    callClaudeJson.mockResolvedValueOnce({
+      data: {
+        rationale: "r",
+        posts: [{ day: "seg", time: "09:00", network: "linkedin", pillarId: null, format: "post", hook: "h", body: "b", media_suggestion: "m" }],
+      },
+      usage: { inputTokens: 10, outputTokens: 5, cachedTokens: 0 },
+      durationMs: 50,
+    });
+
+    await authedCall("/api/strategy/generate", { method: "POST", body: JSON.stringify({ weekStart: "2026-04-27" }) });
+    const userPrompt = callClaudeJson.mock.calls[0][1].user as string;
+    expect(userPrompt).not.toContain("Performance por pilar");
   });
 });
 

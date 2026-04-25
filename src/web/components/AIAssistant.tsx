@@ -7,6 +7,7 @@ import type { Network, Tone } from "../../shared/types";
 interface Props {
   body: string;
   onApply: (text: string) => void;
+  postId?: string | null;
 }
 
 type Mode = null | "variations" | "rewrite" | "tone";
@@ -18,7 +19,12 @@ const TONES: { id: Tone; label: string }[] = [
   { id: "direct", label: "Direto" },
 ];
 
-export function AIAssistant({ body, onApply }: Props) {
+export function AIAssistant({ body, onApply, postId }: Props) {
+  function logApply(text: string) {
+    const variantNetwork = mode === "variations" || mode === "rewrite" ? network : null;
+    const variantTone = mode === "variations" || mode === "tone" ? tone : null;
+    api.recordVariantApplied({ variantText: text, network: variantNetwork, tone: variantTone, postId: postId ?? null }).catch(() => {});
+  }
   const [mode, setMode] = useState<Mode>(null);
   const [brief, setBrief] = useState("");
   const [network, setNetwork] = useState<Network>("linkedin");
@@ -138,7 +144,7 @@ export function AIAssistant({ body, onApply }: Props) {
           {results.map((r, i) => (
             <div key={i} className="ai-result">
               <pre>{r}</pre>
-              <button className="btn-primary" onClick={() => { onApply(r); close(); }}>
+              <button className="btn-primary" onClick={() => { logApply(r); onApply(r); close(); }}>
                 Usar
               </button>
             </div>

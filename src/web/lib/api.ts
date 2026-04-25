@@ -97,7 +97,7 @@ export const api = {
   refreshInstagram: () => json<{ ok: true; count: number }>("/api/connections/instagram/refresh", "POST"),
   disconnectInstagram: () => json<{ ok: true }>("/api/connections/instagram", "DELETE"),
 
-  updatePostStatus: (id: string, status: "draft" | "scheduled" | "published" | "failed") =>
+  updatePostStatus: (id: string, status: "draft" | "needs_review" | "scheduled" | "published" | "failed") =>
     json<unknown>(`/api/posts/${id}`, "PATCH", { status }),
 
   postsByMonth: (year: number, month0: number) => {
@@ -184,6 +184,30 @@ export const api = {
     previous: { totalReach: number; totalEngagement: number; followerGrowth: number; postsPublished: number };
     delta: { totalReachPct: number | null; totalEngagementPct: number | null; followerGrowthPct: number | null; postsPublishedPct: number | null };
   }>("/api/analytics/wow"),
+  recordVariantApplied: (body: { variantText: string; network?: Network | null; tone?: "formal" | "casual" | "playful" | "direct" | null; postId?: string | null }) =>
+    json<{ ok: true }>("/api/ai/variants/applied", "POST", body),
+  requestReview: (postId: string) =>
+    json<{ token: string; url: string; expiresAt: number }>(`/api/posts/${postId}/request-review`, "POST"),
+  listPostComments: (postId: string) =>
+    req<{ items: Array<{ id: string; postId: string; authorLabel: string; body: string; createdAt: number }> }>(`/api/posts/${postId}/comments`),
+  addPostComment: (postId: string, body: string) =>
+    json<{ id: string; postId: string; authorLabel: string; body: string; createdAt: number }>(`/api/posts/${postId}/comments`, "POST", { body }),
+  sendTimes: (network?: "instagram" | "linkedin" | "tiktok", windowDays = 30) => req<{
+    window: number;
+    network: string | null;
+    items: Array<{ weekday: number; hour: number; network: string; sampleSize: number; avgEngagementRate: number | null }>;
+  }>(`/api/analytics/send-times?window=${windowDays}${network ? `&network=${network}` : ""}`),
+
+  // Audience
+  topEngagers: (windowDays = 30, limit = 10) => req<{
+    window: number;
+    items: Array<{ handle: string; network: string; commentCount: number; positiveCount: number; negativeCount: number }>;
+  }>(`/api/audience/top-engagers?window=${windowDays}&limit=${limit}`),
+  sentimentSummary: (windowDays = 30) => req<{
+    window: number;
+    summary: { positive: number; neutral: number; negative: number; unclassified: number };
+  }>(`/api/audience/sentiment-summary?window=${windowDays}`),
+  classifyComments: () => json<{ attempted: number; classified: number }>("/api/audience/classify-now", "POST"),
 
   // Strategy — Pillars
   listPillars: () => req<{
@@ -194,6 +218,24 @@ export const api = {
   updatePillar: (id: string, body: { title?: string; description?: string | null; color?: string | null; position?: number }) =>
     json<{ id: string; title: string; description: string | null; color: string | null; position: number; createdAt: number }>(`/api/strategy/pillars/${id}`, "PATCH", body),
   deletePillar: (id: string) => json<{ ok: true }>(`/api/strategy/pillars/${id}`, "DELETE"),
+  pillarPerformance: (windowDays = 30) => req<{
+    window: number;
+    items: Array<{
+      pillarId: string;
+      title: string;
+      color: string | null;
+      position: number;
+      postCount: number;
+      avgEngagementRate: number | null;
+      totalReach: number;
+      totalLikes: number;
+      totalComments: number;
+      weekly: Array<{ weekStart: string; avgEngagementRate: number | null; postCount: number }>;
+      byNetwork: Array<{ network: string; postCount: number; avgEngagementRate: number | null }>;
+    }>;
+  }>(`/api/strategy/pillars/performance?window=${windowDays}`),
+  backfillPillars: () =>
+    json<{ attempted: number; classified: number; skipped: number }>("/api/strategy/backfill-pillars", "POST"),
 
   // Strategy — Sources
   listSources: () => req<{

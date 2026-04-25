@@ -74,6 +74,7 @@ export interface PostRow {
   user_id: string;
   body: string;
   media_id: string | null;
+  pillar_id: string | null;
   status: string;
   created_at: number;
   updated_at: number;
@@ -95,12 +96,12 @@ export interface PostTargetRow {
 
 export async function createPost(
   db: D1Database,
-  params: { id: string; userId: string; body: string; mediaId: string | null }
+  params: { id: string; userId: string; body: string; mediaId: string | null; pillarId?: string | null }
 ): Promise<void> {
   const now = Date.now();
   await db
-    .prepare("INSERT INTO posts (id, user_id, body, media_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'draft', ?, ?)")
-    .bind(params.id, params.userId, params.body, params.mediaId, now, now)
+    .prepare("INSERT INTO posts (id, user_id, body, media_id, pillar_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'draft', ?, ?)")
+    .bind(params.id, params.userId, params.body, params.mediaId, params.pillarId ?? null, now, now)
     .run();
 }
 
@@ -113,12 +114,13 @@ export async function updatePost(
   db: D1Database,
   userId: string,
   id: string,
-  patch: { body?: string; mediaId?: string | null; status?: string }
+  patch: { body?: string; mediaId?: string | null; pillarId?: string | null; status?: string }
 ): Promise<boolean> {
   const sets: string[] = [];
   const vals: unknown[] = [];
   if (patch.body !== undefined) { sets.push("body = ?"); vals.push(patch.body); }
   if (patch.mediaId !== undefined) { sets.push("media_id = ?"); vals.push(patch.mediaId); }
+  if (patch.pillarId !== undefined) { sets.push("pillar_id = ?"); vals.push(patch.pillarId); }
   if (patch.status !== undefined) { sets.push("status = ?"); vals.push(patch.status); }
   if (sets.length === 0) return true;
   sets.push("updated_at = ?");
@@ -906,6 +908,427 @@ export async function deletePillar(db: D1Database, userId: string, id: string): 
   if (!existing) return false;
   await db.prepare("DELETE FROM content_pillars WHERE id = ?").bind(id).run();
   return true;
+}
+
+// ---- Pillar Performance ----
+
+export interface PillarPerformanceRow {
+  pillar_id: string;
+  title: string;
+  color: string | null;
+  position: number;
+  post_count: number;
+  avg_engagement_rate: number | null;
+  total_reach: number | null;
+  total_likes: number | null;
+  total_comments: number | null;
+}
+
+export async function getPillarPerformance(
+  db: D1Database,
+  userId: string,
+  windowDays: number
+): Promise<PillarPerformanceRow[]> {
+  // Include all pillars (LEFT JOIN) so empty pillars render with zeros.
+  // Aggregates from the latest metrics snapshot per target for posts in the window.
+  const cutoff = Date.now() - windowDays * 86_400_000;
+  const { results } = await db
+    .prepare(
+      `SELECT
+         cp.id AS pillar_id,
+         cp.title,
+         cp.color,
+         cp.position,
+         COUNT(DISTINCT p.id) AS post_count,
+         AVG(lm.engagement_rate) AS avg_engagement_rate,
+         SUM(lm.reach) AS total_reach,
+         SUM(lm.likes) AS total_likes,
+         SUM(lm.comments) AS total_comments
+       FROM content_pillars cp
+       LEFT JOIN posts p
+         ON p.pillar_id = cp.id
+        AND p.user_id = cp.user_id
+        AND p.updated_at >= ?
+       LEFT JOIN post_targets t ON t.post_id = p.id
+       LEFT JOIN post_metrics lm ON lm.id = (
+         SELECT id FROM post_metrics WHERE target_id = t.id ORDER BY snapshot_at DESC LIMIT 1
+       )
+       WHERE cp.user_id = ?
+       GROUP BY cp.id
+       ORDER BY cp.position ASC, cp.created_at ASC`
+    )
+    .bind(cutoff, userId)
+    .all<PillarPerformanceRow>();
+  return results ?? [];
+}
+
+export interface PillarNetworkPerformanceRow {
+  pillar_id: string;
+  network: string;
+  post_count: number;
+  avg_engagement_rate: number | null;
+}
+
+export async function getPillarPerformanceByNetwork(
+  db: D1Database,
+  userId: string,
+  windowDays: number
+): Promise<PillarNetworkPerformanceRow[]> {
+  const cutoff = Date.now() - windowDays * 86_400_000;
+  const { results } = await db
+    .prepare(
+      `SELECT
+         p.pillar_id AS pillar_id,
+         t.network AS network,
+         COUNT(DISTINCT p.id) AS post_count,
+         AVG(lm.engagement_rate) AS avg_engagement_rate
+       FROM posts p
+       JOIN post_targets t ON t.post_id = p.id
+       LEFT JOIN post_metrics lm ON lm.id = (
+         SELECT id FROM post_metrics WHERE target_id = t.id ORDER BY snapshot_at DESC LIMIT 1
+       )
+       WHERE p.user_id = ?
+         AND p.pillar_id IS NOT NULL
+         AND p.updated_at >= ?
+       GROUP BY p.pillar_id, t.network`
+    )
+    .bind(userId, cutoff)
+    .all<PillarNetworkPerformanceRow>();
+  return results ?? [];
+}
+
+export interface PillarWeeklyPerformanceRow {
+  pillar_id: string;
+  week_start: string;
+  avg_engagement_rate: number | null;
+  post_count: number;
+}
+
+export async function getPillarPerformanceWeekly(
+  db: D1Database,
+  userId: string,
+  weeks: number
+): Promise<PillarWeeklyPerformanceRow[]> {
+  const cutoff = Date.now() - weeks * 7 * 86_400_000;
+  // week_start is Monday of the week (UTC), ISO date.
+  const { results } = await db
+    .prepare(
+      `SELECT
+         p.pillar_id AS pillar_id,
+         strftime('%Y-%m-%d', datetime(p.updated_at/1000, 'unixepoch', 'weekday 1', '-7 days')) AS week_start,
+         AVG(lm.engagement_rate) AS avg_engagement_rate,
+         COUNT(DISTINCT p.id) AS post_count
+       FROM posts p
+       LEFT JOIN post_targets t ON t.post_id = p.id
+       LEFT JOIN post_metrics lm ON lm.id = (
+         SELECT id FROM post_metrics WHERE target_id = t.id ORDER BY snapshot_at DESC LIMIT 1
+       )
+       WHERE p.user_id = ?
+         AND p.pillar_id IS NOT NULL
+         AND p.updated_at >= ?
+       GROUP BY p.pillar_id, week_start
+       ORDER BY week_start ASC`
+    )
+    .bind(userId, cutoff)
+    .all<PillarWeeklyPerformanceRow>();
+  return results ?? [];
+}
+
+// ---- Audience: raw post comments + sentiment ----
+
+export interface PostCommentRawRow {
+  id: string;
+  user_id: string;
+  post_id: string;
+  target_id: string;
+  network: string;
+  external_comment_id: string | null;
+  commenter_handle: string | null;
+  body: string;
+  posted_at: number | null;
+  fetched_at: number;
+  sentiment: string | null;
+  topics_json: string | null;
+  classified_at: number | null;
+}
+
+export async function upsertRawComment(
+  db: D1Database,
+  params: {
+    id: string; userId: string; postId: string; targetId: string; network: string;
+    externalCommentId: string | null; commenterHandle: string | null; body: string; postedAt: number | null;
+  }
+): Promise<void> {
+  const now = Date.now();
+  await db.prepare(
+    `INSERT INTO post_comments_raw (id, user_id, post_id, target_id, network, external_comment_id, commenter_handle, body, posted_at, fetched_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (network, external_comment_id) DO UPDATE SET
+       body = excluded.body,
+       commenter_handle = excluded.commenter_handle,
+       posted_at = excluded.posted_at,
+       fetched_at = excluded.fetched_at`
+  ).bind(
+    params.id, params.userId, params.postId, params.targetId, params.network,
+    params.externalCommentId, params.commenterHandle, params.body, params.postedAt, now
+  ).run();
+}
+
+export async function listUnclassifiedComments(
+  db: D1Database,
+  userId: string,
+  limit: number
+): Promise<Array<{ id: string; body: string }>> {
+  const { results } = await db.prepare(
+    `SELECT id, body FROM post_comments_raw WHERE user_id = ? AND classified_at IS NULL ORDER BY fetched_at DESC LIMIT ?`
+  ).bind(userId, limit).all<{ id: string; body: string }>();
+  return results ?? [];
+}
+
+export async function setCommentClassification(
+  db: D1Database,
+  id: string,
+  sentiment: string,
+  topics: string[]
+): Promise<void> {
+  await db.prepare(
+    `UPDATE post_comments_raw SET sentiment = ?, topics_json = ?, classified_at = ? WHERE id = ?`
+  ).bind(sentiment, JSON.stringify(topics), Date.now(), id).run();
+}
+
+export interface TopEngagerRow {
+  handle: string;
+  network: string;
+  comment_count: number;
+  positive_count: number;
+  negative_count: number;
+}
+
+export async function getTopEngagers(
+  db: D1Database,
+  userId: string,
+  windowDays: number,
+  limit: number
+): Promise<TopEngagerRow[]> {
+  const cutoff = Date.now() - windowDays * 86_400_000;
+  const { results } = await db.prepare(
+    `SELECT
+       commenter_handle AS handle,
+       network,
+       COUNT(*) AS comment_count,
+       SUM(CASE WHEN sentiment = 'positive' THEN 1 ELSE 0 END) AS positive_count,
+       SUM(CASE WHEN sentiment = 'negative' THEN 1 ELSE 0 END) AS negative_count
+     FROM post_comments_raw
+     WHERE user_id = ? AND fetched_at >= ? AND commenter_handle IS NOT NULL
+     GROUP BY commenter_handle, network
+     ORDER BY comment_count DESC
+     LIMIT ?`
+  ).bind(userId, cutoff, limit).all<TopEngagerRow>();
+  return results ?? [];
+}
+
+export interface SentimentDistRow {
+  sentiment: string | null;
+  c: number;
+}
+
+export async function getSentimentSummary(
+  db: D1Database,
+  userId: string,
+  windowDays: number
+): Promise<SentimentDistRow[]> {
+  const cutoff = Date.now() - windowDays * 86_400_000;
+  const { results } = await db.prepare(
+    `SELECT sentiment, COUNT(*) AS c FROM post_comments_raw WHERE user_id = ? AND fetched_at >= ? GROUP BY sentiment`
+  ).bind(userId, cutoff).all<SentimentDistRow>();
+  return results ?? [];
+}
+
+export interface ReviewLinkRow {
+  token: string;
+  post_id: string;
+  user_id: string;
+  workspace_id: string | null;
+  expires_at: number;
+  used_at: number | null;
+  decision: string | null;
+  comment: string | null;
+  created_at: number;
+}
+
+export async function createReviewLink(
+  db: D1Database,
+  params: { token: string; postId: string; userId: string; expiresAt: number }
+): Promise<void> {
+  await db.prepare(
+    `INSERT INTO review_links (token, post_id, user_id, expires_at, created_at) VALUES (?, ?, ?, ?, ?)`
+  ).bind(params.token, params.postId, params.userId, params.expiresAt, Date.now()).run();
+}
+
+export async function getReviewLinkByToken(db: D1Database, token: string): Promise<ReviewLinkRow | null> {
+  return (await db.prepare("SELECT * FROM review_links WHERE token = ?").bind(token).first<ReviewLinkRow>()) ?? null;
+}
+
+export async function recordReviewDecision(
+  db: D1Database,
+  token: string,
+  decision: "approved" | "rejected",
+  comment: string | null
+): Promise<boolean> {
+  const res = await db.prepare(
+    `UPDATE review_links SET used_at = ?, decision = ?, comment = ? WHERE token = ? AND used_at IS NULL`
+  ).bind(Date.now(), decision, comment, token).run();
+  return res.meta.changes > 0;
+}
+
+export interface PostCommentRow {
+  id: string;
+  post_id: string;
+  user_id: string | null;
+  author_label: string;
+  body: string;
+  created_at: number;
+}
+
+export async function addPostComment(
+  db: D1Database,
+  params: { id: string; postId: string; userId: string | null; authorLabel: string; body: string }
+): Promise<void> {
+  await db.prepare(
+    `INSERT INTO post_comments (id, post_id, user_id, author_label, body, created_at) VALUES (?, ?, ?, ?, ?, ?)`
+  ).bind(params.id, params.postId, params.userId, params.authorLabel, params.body, Date.now()).run();
+}
+
+export async function listPostComments(db: D1Database, postId: string): Promise<PostCommentRow[]> {
+  const { results } = await db.prepare(
+    `SELECT * FROM post_comments WHERE post_id = ? ORDER BY created_at ASC`
+  ).bind(postId).all<PostCommentRow>();
+  return results ?? [];
+}
+
+export interface AIVariantOutcomeRow {
+  id: string;
+  user_id: string;
+  network: string | null;
+  tone: string | null;
+  variant_text: string;
+  post_id: string | null;
+  applied_at: number;
+}
+
+export async function recordVariantOutcome(
+  db: D1Database,
+  params: { id: string; userId: string; network: string | null; tone: string | null; variantText: string; postId: string | null }
+): Promise<void> {
+  await db.prepare(
+    `INSERT INTO ai_variant_outcomes (id, user_id, network, tone, variant_text, post_id, applied_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).bind(params.id, params.userId, params.network, params.tone, params.variantText, params.postId, Date.now()).run();
+}
+
+export interface WinningVariantRow {
+  variant_text: string;
+  network: string | null;
+  engagement_rate: number | null;
+  applied_at: number;
+}
+
+export async function getWinningVariants(
+  db: D1Database,
+  userId: string,
+  windowDays: number,
+  limit: number
+): Promise<WinningVariantRow[]> {
+  const cutoff = Date.now() - windowDays * 86_400_000;
+  const { results } = await db.prepare(
+    `SELECT v.variant_text, v.network, v.applied_at,
+            (SELECT pm.engagement_rate
+               FROM post_metrics pm
+               JOIN post_targets t ON t.id = pm.target_id
+               WHERE t.post_id = v.post_id
+               ORDER BY pm.snapshot_at DESC LIMIT 1) AS engagement_rate
+     FROM ai_variant_outcomes v
+     WHERE v.user_id = ? AND v.applied_at >= ? AND v.post_id IS NOT NULL
+     ORDER BY engagement_rate DESC NULLS LAST, v.applied_at DESC
+     LIMIT ?`
+  ).bind(userId, cutoff, limit).all<WinningVariantRow>();
+  return results ?? [];
+}
+
+export interface SendTimeBucketRow {
+  weekday: number;          // 0=Sunday … 6=Saturday (SQLite strftime %w)
+  hour: number;             // 0..23
+  network: string;
+  sample_size: number;
+  avg_engagement_rate: number | null;
+}
+
+export async function getBestSendTimes(
+  db: D1Database,
+  userId: string,
+  network: string | null,
+  windowDays: number
+): Promise<SendTimeBucketRow[]> {
+  const cutoff = Date.now() - windowDays * 86_400_000;
+  const sql = `
+    SELECT
+      CAST(strftime('%w', datetime(t.published_at/1000, 'unixepoch')) AS INTEGER) AS weekday,
+      CAST(strftime('%H', datetime(t.published_at/1000, 'unixepoch')) AS INTEGER) AS hour,
+      t.network AS network,
+      COUNT(*) AS sample_size,
+      AVG(lm.engagement_rate) AS avg_engagement_rate
+    FROM post_targets t
+    JOIN posts p ON p.id = t.post_id
+    LEFT JOIN post_metrics lm ON lm.id = (
+      SELECT id FROM post_metrics WHERE target_id = t.id ORDER BY snapshot_at DESC LIMIT 1
+    )
+    WHERE p.user_id = ?
+      AND t.status = 'published'
+      AND t.published_at IS NOT NULL
+      AND t.published_at >= ?
+      ${network ? "AND t.network = ?" : ""}
+    GROUP BY weekday, hour, t.network
+  `;
+  const stmt = network
+    ? db.prepare(sql).bind(userId, cutoff, network)
+    : db.prepare(sql).bind(userId, cutoff);
+  const { results } = await stmt.all<SendTimeBucketRow>();
+  return results ?? [];
+}
+
+export interface UnclassifiedPostRow {
+  id: string;
+  body: string;
+}
+
+export async function listUnclassifiedPosts(
+  db: D1Database,
+  userId: string,
+  limit: number
+): Promise<UnclassifiedPostRow[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT id, body FROM posts
+       WHERE user_id = ? AND pillar_id IS NULL AND body != ''
+       ORDER BY updated_at DESC
+       LIMIT ?`
+    )
+    .bind(userId, limit)
+    .all<UnclassifiedPostRow>();
+  return results ?? [];
+}
+
+export async function setPostPillar(
+  db: D1Database,
+  userId: string,
+  postId: string,
+  pillarId: string | null
+): Promise<boolean> {
+  const res = await db
+    .prepare("UPDATE posts SET pillar_id = ?, updated_at = ? WHERE id = ? AND user_id = ?")
+    .bind(pillarId, Date.now(), postId, userId)
+    .run();
+  return res.meta.changes > 0;
 }
 
 // ---- Inspiration Sources ----

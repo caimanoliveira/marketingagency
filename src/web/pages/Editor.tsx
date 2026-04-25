@@ -8,6 +8,8 @@ import { MediaUploader } from "../components/MediaUploader";
 import { MediaPicker } from "../components/MediaPicker";
 import { AIAssistant } from "../components/AIAssistant";
 import { Schedule } from "../components/Schedule";
+import { BestTimeChip } from "../components/BestTimeChip";
+import { CommentsThread } from "../components/CommentsThread";
 import { LinkedInTargetPicker } from "../components/LinkedInTargetPicker";
 import { InstagramTargetPicker } from "../components/InstagramTargetPicker";
 import { SkeletonRow } from "../components/Skeleton";
@@ -20,6 +22,7 @@ export function Editor() {
 
   const [body, setBody] = useState("");
   const [mediaId, setMediaId] = useState<string | null>(null);
+  const [pillarId, setPillarId] = useState<string | null>(null);
   const [networks, setNetworks] = useState<Network[]>([]);
   const [overrides, setOverrides] = useState<Record<Network, string | null>>({
     instagram: null, tiktok: null, linkedin: null,
@@ -38,10 +41,17 @@ export function Editor() {
     enabled: !!id && id !== "new",
   });
 
+  const { data: pillarsData } = useQuery({
+    queryKey: ["pillars"],
+    queryFn: () => api.listPillars(),
+  });
+  const pillars = pillarsData?.items ?? [];
+
   useEffect(() => {
     if (post) {
       setBody(post.body);
       setMediaId(post.mediaId);
+      setPillarId(post.pillarId);
       setNetworks(post.targets.map((t) => t.network));
       const next: Record<Network, string | null> = { instagram: null, tiktok: null, linkedin: null };
       for (const t of post.targets) next[t.network] = t.bodyOverride;
@@ -60,7 +70,7 @@ export function Editor() {
   const saveBase = useMutation({
     mutationFn: async (): Promise<Post> => {
       if (!id || id === "new") throw new Error("no_id");
-      return api.updatePost(id, { body, mediaId });
+      return api.updatePost(id, { body, mediaId, pillarId });
     },
   });
 
@@ -113,6 +123,26 @@ export function Editor() {
         <h1>{post?.body ? "Editar post" : "Novo post"}</h1>
         <div style={{ display: "flex", gap: 8 }}>
           <button className="btn-danger" onClick={handleDelete}>Excluir</button>
+          <button
+            className="btn-secondary"
+            onClick={async () => {
+              if (!id) return;
+              await saveBase.mutateAsync();
+              await saveTargets.mutateAsync();
+              try {
+                const link = await api.requestReview(id);
+                await navigator.clipboard.writeText(link.url).catch(() => {});
+                alert(`Link de revisão copiado:\n${link.url}\n\nExpira em 7 dias.`);
+                qc.invalidateQueries({ queryKey: ["post", id] });
+              } catch (e) {
+                alert("Falhou ao gerar link: " + (e instanceof Error ? e.message : "erro"));
+              }
+            }}
+            disabled={!body.trim() || saveBase.isPending}
+            title="Cria um link público (válido 7d) que stakeholder usa pra aprovar"
+          >
+            ✉️ Pedir review
+          </button>
           <button className="btn-primary" onClick={handleSave} disabled={saveBase.isPending || saveTargets.isPending}>
             {saveBase.isPending || saveTargets.isPending ? "Salvando..." : "Salvar"}
           </button>
@@ -121,7 +151,7 @@ export function Editor() {
 
       <div className="editor-grid">
         <div className="editor-pane">
-          <AIAssistant body={body} onApply={(text) => setBody(text)} />
+          <AIAssistant body={body} onApply={(text) => setBody(text)} postId={id ?? null} />
           <label style={{ fontSize: 14, color: "#aaa", marginBottom: 8, display: "block" }}>Copy base</label>
           <textarea
             value={body}
@@ -132,6 +162,23 @@ export function Editor() {
           <div style={{ marginTop: 20 }}>
             <label style={{ fontSize: 14, color: "#aaa", marginBottom: 8, display: "block" }}>Redes</label>
             <NetworkSelector value={networks} onChange={setNetworks} />
+          </div>
+
+          <div style={{ marginTop: 20 }}>
+            <label style={{ fontSize: 14, color: "#aaa", marginBottom: 8, display: "block" }}>Pilar</label>
+            <select
+              value={pillarId ?? ""}
+              onChange={(e) => setPillarId(e.target.value === "" ? null : e.target.value)}
+              style={{ width: "100%", padding: "8px 10px", background: "#0d0d12", border: "1px solid #1f1f28", borderRadius: 8, color: "#e0e0e0", fontSize: 14 }}
+            >
+              <option value="">— sem pilar —</option>
+              {pillars.map((p) => (
+                <option key={p.id} value={p.id}>{p.title}</option>
+              ))}
+            </select>
+            {pillars.length === 0 && (
+              <p style={{ fontSize: 11, color: "#888", marginTop: 4 }}>Nenhum pilar cadastrado. Vá em Estratégia pra criar.</p>
+            )}
           </div>
 
           <div style={{ marginTop: 20 }}>
@@ -157,6 +204,8 @@ export function Editor() {
               </div>
             )}
           </div>
+
+          {id && id !== "new" && <CommentsThread postId={id} />}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -207,6 +256,10 @@ export function Editor() {
                 <Schedule
                   value={schedules[n]}
                   onChange={(ms) => setSchedules((prev) => ({ ...prev, [n]: ms }))}
+                />
+                <BestTimeChip
+                  network={n}
+                  onPick={(ms) => setSchedules((prev) => ({ ...prev, [n]: ms }))}
                 />
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                   <button

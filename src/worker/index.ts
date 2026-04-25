@@ -9,6 +9,8 @@ import { publish } from "./routes/publish";
 import { analytics } from "./routes/analytics";
 import { competitors } from "./routes/competitors";
 import { strategy } from "./routes/strategy";
+import { review } from "./routes/review";
+import { audience } from "./routes/audience";
 import type { PublishJob } from "../shared/types";
 
 export interface Env {
@@ -45,6 +47,8 @@ app.route("/api/publish", publish);
 app.route("/api/analytics", analytics);
 app.route("/api/competitors", competitors);
 app.route("/api/strategy", strategy);
+app.route("/api/review", review);
+app.route("/api/audience", audience);
 
 app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));
 
@@ -60,6 +64,15 @@ export default {
     } else if (cron === "0 3 * * *") {
       const { collectMetrics } = await import("./analytics/collect");
       ctx.waitUntil(collectMetrics(env).then((r) => console.log(`analytics: ${r.usersProcessed} users, ${r.errors.length} errors`)));
+    } else if (cron === "30 4 * * *") {
+      const { collectAudience } = await import("./audience/collect");
+      const { classifyPendingForAllUsers } = await import("./scheduler/sentiment-cron");
+      ctx.waitUntil((async () => {
+        const ingest = await collectAudience(env);
+        console.log(`audience collect: ${ingest.usersProcessed} users, ${ingest.commentsIngested} comments, ${ingest.errors.length} errors`);
+        const classify = await classifyPendingForAllUsers(env);
+        console.log(`sentiment cron: ${classify.usersProcessed} users, ${classify.classified} classified, ${classify.errors.length} errors`);
+      })());
     } else {
       const { scanAndEnqueue } = await import("./scheduler/cron");
       ctx.waitUntil(scanAndEnqueue(env).then((n) => console.log(`cron enqueued ${n} jobs`)));

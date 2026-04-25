@@ -12,6 +12,7 @@ import { Kanban } from "./pages/Kanban";
 import { Analytics } from "./pages/Analytics";
 import { Benchmarks } from "./pages/Benchmarks";
 import { Strategy } from "./pages/Strategy";
+import { Review } from "./pages/Review";
 import "./styles.css";
 
 export function App() {
@@ -20,6 +21,7 @@ export function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/review/:token" element={<Review />} />
           <Route element={<Layout />}>
             <Route path="/" element={<Navigate to="/posts" replace />} />
             <Route path="/posts" element={<PostsList />} />
