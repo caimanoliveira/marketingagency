@@ -65,8 +65,14 @@ export default {
       const { collectMetrics } = await import("./analytics/collect");
       ctx.waitUntil(collectMetrics(env).then((r) => console.log(`analytics: ${r.usersProcessed} users, ${r.errors.length} errors`)));
     } else if (cron === "30 4 * * *") {
+      const { collectAudience } = await import("./audience/collect");
       const { classifyPendingForAllUsers } = await import("./scheduler/sentiment-cron");
-      ctx.waitUntil(classifyPendingForAllUsers(env).then((r) => console.log(`sentiment cron: ${r.usersProcessed} users, ${r.classified} classified, ${r.errors.length} errors`)));
+      ctx.waitUntil((async () => {
+        const ingest = await collectAudience(env);
+        console.log(`audience collect: ${ingest.usersProcessed} users, ${ingest.commentsIngested} comments, ${ingest.errors.length} errors`);
+        const classify = await classifyPendingForAllUsers(env);
+        console.log(`sentiment cron: ${classify.usersProcessed} users, ${classify.classified} classified, ${classify.errors.length} errors`);
+      })());
     } else {
       const { scanAndEnqueue } = await import("./scheduler/cron");
       ctx.waitUntil(scanAndEnqueue(env).then((n) => console.log(`cron enqueued ${n} jobs`)));

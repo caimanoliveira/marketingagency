@@ -3,6 +3,7 @@ import type { Env } from "../index";
 import { requireAuth } from "../middleware/requireAuth";
 import { getTopEngagers, getSentimentSummary } from "../db/queries";
 import { classifyPendingComments } from "../ai/sentiment";
+import { collectAudience } from "../audience/collect";
 
 export const audience = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 audience.use("*", requireAuth);
@@ -39,6 +40,16 @@ audience.get("/sentiment-summary", async (c) => {
     else summary.unclassified = r.c;
   }
   return c.json({ window: w, summary });
+});
+
+audience.post("/collect-now", async (c) => {
+  try {
+    const r = await collectAudience(c.env);
+    return c.json(r);
+  } catch (e) {
+    console.error("collect-audience failed", e);
+    return c.json({ error: "collect_failed" }, 502);
+  }
 });
 
 audience.post("/classify-now", async (c) => {
