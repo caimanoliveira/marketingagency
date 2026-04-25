@@ -3,7 +3,7 @@ import { callClaudeJson, MODEL } from "./claude";
 import { systemForStrategy, userForStrategy } from "./strategy-prompts";
 import {
   listPillars, listSources, getMetaConnection, saveWeeklySuggestion,
-  getPillarPerformance, getWinningVariants,
+  getPillarPerformance, getWinningVariants, getPillarPerformanceByNetwork,
   type SuggestedPostJson, type ContentPillarRow, type InspirationSourceRow,
 } from "../db/queries";
 import { fetchCompetitorBasic } from "../integrations/meta";
@@ -37,6 +37,11 @@ export async function generateWeeklyPlan(
     postCount: r.post_count ?? 0,
     avgEngagementRate: r.avg_engagement_rate,
   }));
+
+  const byNetworkRows = await getPillarPerformanceByNetwork(env.DB, userId, 30);
+  const pillarPerformanceByNetwork = byNetworkRows
+    .filter((r) => r.post_count >= 3 && r.avg_engagement_rate !== null)
+    .map((r) => ({ pillarId: r.pillar_id, network: r.network, postCount: r.post_count, avgEngagementRate: r.avg_engagement_rate }));
 
   const winnerRows = await getWinningVariants(env.DB, userId, 14, 5);
   const winningVariants = winnerRows.map((w) => ({
@@ -120,6 +125,7 @@ export async function generateWeeklyPlan(
     recentOwnPosts,
     targetNetworks,
     pillarPerformance,
+    pillarPerformanceByNetwork,
     winningVariants,
   });
 

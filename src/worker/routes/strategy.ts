@@ -6,7 +6,7 @@ import {
   upsertPillar, listPillars, deletePillar,
   addSource, listSources, removeSource,
   getWeeklySuggestion, listWeeklySuggestions,
-  getPillarPerformance, getPillarPerformanceWeekly,
+  getPillarPerformance, getPillarPerformanceWeekly, getPillarPerformanceByNetwork,
 } from "../db/queries";
 import { generateWeeklyPlan } from "../ai/strategy";
 import { backfillPillars } from "../ai/pillar-classify";
@@ -122,9 +122,10 @@ strategy.get("/pillars/performance", async (c) => {
   const windowParam = parseInt(c.req.query("window") ?? "30", 10);
   const window = Number.isFinite(windowParam) && windowParam > 0 && windowParam <= 365 ? windowParam : 30;
 
-  const [rows, weeklyRows] = await Promise.all([
+  const [rows, weeklyRows, byNetworkRows] = await Promise.all([
     getPillarPerformance(c.env.DB, userId, window),
     getPillarPerformanceWeekly(c.env.DB, userId, 4),
+    getPillarPerformanceByNetwork(c.env.DB, userId, window),
   ]);
 
   const weeklyByPillar = new Map<string, Array<{ weekStart: string; avgEngagementRate: number | null; postCount: number }>>();
@@ -132,6 +133,13 @@ strategy.get("/pillars/performance", async (c) => {
     const list = weeklyByPillar.get(w.pillar_id) ?? [];
     list.push({ weekStart: w.week_start, avgEngagementRate: w.avg_engagement_rate, postCount: w.post_count });
     weeklyByPillar.set(w.pillar_id, list);
+  }
+
+  const networksByPillar = new Map<string, Array<{ network: string; postCount: number; avgEngagementRate: number | null }>>();
+  for (const n of byNetworkRows) {
+    const list = networksByPillar.get(n.pillar_id) ?? [];
+    list.push({ network: n.network, postCount: n.post_count, avgEngagementRate: n.avg_engagement_rate });
+    networksByPillar.set(n.pillar_id, list);
   }
 
   return c.json({
@@ -147,6 +155,7 @@ strategy.get("/pillars/performance", async (c) => {
       totalLikes: r.total_likes ?? 0,
       totalComments: r.total_comments ?? 0,
       weekly: weeklyByPillar.get(r.pillar_id) ?? [],
+      byNetwork: networksByPillar.get(r.pillar_id) ?? [],
     })),
   });
 });

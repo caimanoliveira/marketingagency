@@ -19,6 +19,13 @@ export interface PillarPerformanceSample {
   avgEngagementRate: number | null;
 }
 
+export interface PillarNetworkSample {
+  pillarId: string;
+  network: string;
+  postCount: number;
+  avgEngagementRate: number | null;
+}
+
 export interface WinningVariantSample {
   text: string;
   network: string | null;
@@ -47,6 +54,7 @@ export function userForStrategy(args: {
   recentOwnPosts: Array<{ network: string; body: string; publishedAt: number | null }>;
   targetNetworks: string[];
   pillarPerformance?: PillarPerformanceSample[];
+  pillarPerformanceByNetwork?: PillarNetworkSample[];
   winningVariants?: WinningVariantSample[];
 }): string {
   const parts: string[] = [];
@@ -92,6 +100,15 @@ export function userForStrategy(args: {
     }
   } else if (args.radarSources.length > 0) {
     parts.push(`Radar cadastrado mas sem amostras recentes: ${args.radarSources.map((s) => "@" + s.username).join(", ")}`);
+  }
+
+  if (args.pillarPerformanceByNetwork && args.pillarPerformanceByNetwork.length > 0) {
+    parts.push("Performance pilar × rede (≥3 posts, últimos 30d) — use pra escolher onde publicar cada pilar:");
+    const sorted = [...args.pillarPerformanceByNetwork].sort((a, b) => (b.avgEngagementRate ?? 0) - (a.avgEngagementRate ?? 0));
+    for (const r of sorted) {
+      const pct = r.avgEngagementRate === null ? "—" : `${(r.avgEngagementRate * 100).toFixed(2)}%`;
+      parts.push(`  - [${r.pillarId}] em ${r.network}: ${pct} (${r.postCount} posts)`);
+    }
   }
 
   if (args.winningVariants && args.winningVariants.length > 0) {

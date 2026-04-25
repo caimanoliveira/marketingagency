@@ -214,6 +214,7 @@ export const api = {
       totalLikes: number;
       totalComments: number;
       weekly: Array<{ weekStart: string; avgEngagementRate: number | null; postCount: number }>;
+      byNetwork: Array<{ network: string; postCount: number; avgEngagementRate: number | null }>;
     }>;
   }>(`/api/strategy/pillars/performance?window=${windowDays}`),
   backfillPillars: () =>

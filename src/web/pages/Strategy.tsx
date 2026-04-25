@@ -26,6 +26,7 @@ export function Strategy() {
 
 function PillarPerformanceStrip() {
   const qc = useQueryClient();
+  const [networkTab, setNetworkTab] = useState<"all" | "linkedin" | "instagram" | "tiktok">("all");
   const { data, isLoading } = useQuery({
     queryKey: ["pillar-performance", 30],
     queryFn: () => api.pillarPerformance(30),
@@ -46,25 +47,40 @@ function PillarPerformanceStrip() {
   if (items.length === 0) return null;
 
   const hasAnyEngagement = items.some((i) => i.avgEngagementRate !== null && i.avgEngagementRate > 0);
-  const sorted = [...items].sort((a, b) => {
-    const av = a.avgEngagementRate ?? -1;
-    const bv = b.avgEngagementRate ?? -1;
-    return bv - av;
+  const projected = items.map((p) => {
+    if (networkTab === "all") {
+      return { ...p, displayEngagement: p.avgEngagementRate, displayPostCount: p.postCount };
+    }
+    const slice = (p.byNetwork ?? []).find((b) => b.network === networkTab);
+    return { ...p, displayEngagement: slice?.avgEngagementRate ?? null, displayPostCount: slice?.postCount ?? 0 };
   });
+  const sorted = [...projected].sort((a, b) => (b.displayEngagement ?? -1) - (a.displayEngagement ?? -1));
 
   return (
     <section style={{ marginTop: 20, marginBottom: 24 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
         <h2 style={{ fontSize: 16, margin: 0 }}>Pillar ROI <span style={{ fontSize: 11, color: "#888", fontWeight: 400 }}>(últimos 30 dias)</span></h2>
-        <button
-          className="btn-secondary"
-          style={{ fontSize: 11, padding: "4px 10px" }}
-          onClick={() => backfillMut.mutate()}
-          disabled={backfillMut.isPending}
-          title="Usa Claude Haiku pra classificar posts antigos sem pilar"
-        >
-          {backfillMut.isPending ? "Classificando..." : "Classificar posts antigos"}
-        </button>
+        <div style={{ display: "flex", gap: 4 }}>
+          {(["all", "linkedin", "instagram", "tiktok"] as const).map((tab) => (
+            <button
+              key={tab}
+              className={networkTab === tab ? "btn-primary" : "btn-secondary"}
+              style={{ fontSize: 10, padding: "2px 8px" }}
+              onClick={() => setNetworkTab(tab)}
+            >
+              {tab === "all" ? "Todas" : tab.slice(0, 3).toUpperCase()}
+            </button>
+          ))}
+          <button
+            className="btn-secondary"
+            style={{ fontSize: 11, padding: "4px 10px" }}
+            onClick={() => backfillMut.mutate()}
+            disabled={backfillMut.isPending}
+            title="Usa Claude Haiku pra classificar posts antigos sem pilar"
+          >
+            {backfillMut.isPending ? "Classificando..." : "Classificar posts antigos"}
+          </button>
+        </div>
       </div>
       {!hasAnyEngagement && (
         <p style={{ fontSize: 12, color: "#888", marginBottom: 8 }}>
@@ -79,12 +95,11 @@ function PillarPerformanceStrip() {
               <div style={{ fontSize: 13, fontWeight: 600, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</div>
             </div>
             <div style={{ fontSize: 22, fontWeight: 700, color: "#eee" }}>
-              {p.avgEngagementRate === null ? "—" : `${(p.avgEngagementRate * 100).toFixed(1)}%`}
+              {p.displayEngagement === null ? "—" : `${(p.displayEngagement * 100).toFixed(1)}%`}
             </div>
             <div style={{ display: "flex", gap: 8, fontSize: 11, color: "#888" }}>
-              <span>{p.postCount} post{p.postCount === 1 ? "" : "s"}</span>
-              <span>·</span>
-              <span>{p.totalReach.toLocaleString("pt-BR")} alcance</span>
+              <span>{p.displayPostCount} post{p.displayPostCount === 1 ? "" : "s"}</span>
+              {networkTab === "all" && <><span>·</span><span>{p.totalReach.toLocaleString("pt-BR")} alcance</span></>}
             </div>
             {p.weekly.length > 0 && <Sparkline points={p.weekly} />}
           </div>

@@ -962,6 +962,41 @@ export async function getPillarPerformance(
   return results ?? [];
 }
 
+export interface PillarNetworkPerformanceRow {
+  pillar_id: string;
+  network: string;
+  post_count: number;
+  avg_engagement_rate: number | null;
+}
+
+export async function getPillarPerformanceByNetwork(
+  db: D1Database,
+  userId: string,
+  windowDays: number
+): Promise<PillarNetworkPerformanceRow[]> {
+  const cutoff = Date.now() - windowDays * 86_400_000;
+  const { results } = await db
+    .prepare(
+      `SELECT
+         p.pillar_id AS pillar_id,
+         t.network AS network,
+         COUNT(DISTINCT p.id) AS post_count,
+         AVG(lm.engagement_rate) AS avg_engagement_rate
+       FROM posts p
+       JOIN post_targets t ON t.post_id = p.id
+       LEFT JOIN post_metrics lm ON lm.id = (
+         SELECT id FROM post_metrics WHERE target_id = t.id ORDER BY snapshot_at DESC LIMIT 1
+       )
+       WHERE p.user_id = ?
+         AND p.pillar_id IS NOT NULL
+         AND p.updated_at >= ?
+       GROUP BY p.pillar_id, t.network`
+    )
+    .bind(userId, cutoff)
+    .all<PillarNetworkPerformanceRow>();
+  return results ?? [];
+}
+
 export interface PillarWeeklyPerformanceRow {
   pillar_id: string;
   week_start: string;
