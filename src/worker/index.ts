@@ -10,6 +10,7 @@ import { analytics } from "./routes/analytics";
 import { competitors } from "./routes/competitors";
 import { strategy } from "./routes/strategy";
 import { review } from "./routes/review";
+import { audience } from "./routes/audience";
 import type { PublishJob } from "../shared/types";
 
 export interface Env {
@@ -47,6 +48,7 @@ app.route("/api/analytics", analytics);
 app.route("/api/competitors", competitors);
 app.route("/api/strategy", strategy);
 app.route("/api/review", review);
+app.route("/api/audience", audience);
 
 app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));
 

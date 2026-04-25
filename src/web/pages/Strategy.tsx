@@ -17,10 +17,64 @@ export function Strategy() {
         Defina seus pilares de conteúdo, adicione contas inspiracionais, e deixe a IA propor a agenda semanal.
       </p>
       <PillarPerformanceStrip />
+      <AudienceStrip />
       <PillarsSection />
       <SourcesSection />
       <WeeklyPlanSection />
     </div>
+  );
+}
+
+function AudienceStrip() {
+  const qc = useQueryClient();
+  const { data: sent } = useQuery({ queryKey: ["sentiment-summary"], queryFn: () => api.sentimentSummary(30) });
+  const { data: top } = useQuery({ queryKey: ["top-engagers"], queryFn: () => api.topEngagers(30, 5) });
+  const classifyMut = useMutation({
+    mutationFn: () => api.classifyComments(),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["sentiment-summary"] });
+      qc.invalidateQueries({ queryKey: ["top-engagers"] });
+      alert(`${r.classified}/${r.attempted} comentários classificados.`);
+    },
+  });
+
+  const s = sent?.summary;
+  const total = (s?.positive ?? 0) + (s?.neutral ?? 0) + (s?.negative ?? 0);
+  if (!s || (total === 0 && (s.unclassified ?? 0) === 0)) return null;
+  const pct = (n: number) => total === 0 ? "—" : `${Math.round((n / total) * 100)}%`;
+
+  return (
+    <section style={{ marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+        <h2 style={{ fontSize: 16, margin: 0 }}>Audiência <span style={{ fontSize: 11, color: "#888", fontWeight: 400 }}>(últimos 30 dias)</span></h2>
+        <button className="btn-secondary" style={{ fontSize: 11, padding: "4px 10px" }} onClick={() => classifyMut.mutate()} disabled={classifyMut.isPending}>
+          {classifyMut.isPending ? "Classificando..." : "Classificar pendentes"}
+        </button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
+        <div style={{ background: "#111118", border: "1px solid #1f1f28", borderRadius: 10, padding: 12 }}>
+          <div style={{ fontSize: 12, color: "#888", marginBottom: 8 }}>Sentimento ({total} comentários)</div>
+          <div style={{ display: "flex", gap: 12, fontSize: 13 }}>
+            <span style={{ color: "#7ecf8a" }}>{pct(s.positive)} pos</span>
+            <span style={{ color: "#aaa" }}>{pct(s.neutral)} neu</span>
+            <span style={{ color: "#ff6b6b" }}>{pct(s.negative)} neg</span>
+          </div>
+          {s.unclassified > 0 && (
+            <div style={{ fontSize: 11, color: "#888", marginTop: 6 }}>{s.unclassified} sem classificação</div>
+          )}
+        </div>
+        <div style={{ background: "#111118", border: "1px solid #1f1f28", borderRadius: 10, padding: 12 }}>
+          <div style={{ fontSize: 12, color: "#888", marginBottom: 8 }}>Top engajadores</div>
+          {(top?.items ?? []).length === 0 && <div style={{ fontSize: 12, color: "#888" }}>—</div>}
+          {(top?.items ?? []).slice(0, 5).map((e) => (
+            <div key={`${e.handle}-${e.network}`} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "2px 0" }}>
+              <span>@{e.handle} <span style={{ color: "#888" }}>· {e.network}</span></span>
+              <span style={{ color: "#ccc" }}>{e.commentCount} <span style={{ color: "#7ecf8a" }}>+{e.positiveCount}</span> <span style={{ color: "#ff6b6b" }}>-{e.negativeCount}</span></span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 

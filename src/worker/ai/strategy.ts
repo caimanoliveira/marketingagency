@@ -4,6 +4,7 @@ import { systemForStrategy, userForStrategy } from "./strategy-prompts";
 import {
   listPillars, listSources, getMetaConnection, saveWeeklySuggestion,
   getPillarPerformance, getWinningVariants, getPillarPerformanceByNetwork,
+  getSentimentSummary,
   type SuggestedPostJson, type ContentPillarRow, type InspirationSourceRow,
 } from "../db/queries";
 import { fetchCompetitorBasic } from "../integrations/meta";
@@ -42,6 +43,14 @@ export async function generateWeeklyPlan(
   const pillarPerformanceByNetwork = byNetworkRows
     .filter((r) => r.post_count >= 3 && r.avg_engagement_rate !== null)
     .map((r) => ({ pillarId: r.pillar_id, network: r.network, postCount: r.post_count, avgEngagementRate: r.avg_engagement_rate }));
+
+  const sentimentRows = await getSentimentSummary(env.DB, userId, 14);
+  const sentimentSummary = { positive: 0, neutral: 0, negative: 0 };
+  for (const s of sentimentRows) {
+    if (s.sentiment === "positive") sentimentSummary.positive = s.c;
+    else if (s.sentiment === "neutral") sentimentSummary.neutral = s.c;
+    else if (s.sentiment === "negative") sentimentSummary.negative = s.c;
+  }
 
   const winnerRows = await getWinningVariants(env.DB, userId, 14, 5);
   const winningVariants = winnerRows.map((w) => ({
@@ -127,6 +136,7 @@ export async function generateWeeklyPlan(
     pillarPerformance,
     pillarPerformanceByNetwork,
     winningVariants,
+    sentimentSummary,
   });
 
   const result = await callClaudeJson<{ rationale: string; posts: Array<{ day: string; time: string; network: string; pillarId: string | null; format: string; hook: string; body: string; media_suggestion: string }> }>(

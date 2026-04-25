@@ -198,6 +198,17 @@ export const api = {
     items: Array<{ weekday: number; hour: number; network: string; sampleSize: number; avgEngagementRate: number | null }>;
   }>(`/api/analytics/send-times?window=${windowDays}${network ? `&network=${network}` : ""}`),
 
+  // Audience
+  topEngagers: (windowDays = 30, limit = 10) => req<{
+    window: number;
+    items: Array<{ handle: string; network: string; commentCount: number; positiveCount: number; negativeCount: number }>;
+  }>(`/api/audience/top-engagers?window=${windowDays}&limit=${limit}`),
+  sentimentSummary: (windowDays = 30) => req<{
+    window: number;
+    summary: { positive: number; neutral: number; negative: number; unclassified: number };
+  }>(`/api/audience/sentiment-summary?window=${windowDays}`),
+  classifyComments: () => json<{ attempted: number; classified: number }>("/api/audience/classify-now", "POST"),
+
   // Strategy — Pillars
   listPillars: () => req<{
     items: Array<{ id: string; title: string; description: string | null; color: string | null; position: number; createdAt: number }>;

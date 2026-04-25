@@ -56,6 +56,7 @@ export function userForStrategy(args: {
   pillarPerformance?: PillarPerformanceSample[];
   pillarPerformanceByNetwork?: PillarNetworkSample[];
   winningVariants?: WinningVariantSample[];
+  sentimentSummary?: { positive: number; neutral: number; negative: number };
 }): string {
   const parts: string[] = [];
   parts.push(`Semana começando: ${args.weekStart}`);
@@ -108,6 +109,15 @@ export function userForStrategy(args: {
     for (const r of sorted) {
       const pct = r.avgEngagementRate === null ? "—" : `${(r.avgEngagementRate * 100).toFixed(2)}%`;
       parts.push(`  - [${r.pillarId}] em ${r.network}: ${pct} (${r.postCount} posts)`);
+    }
+  }
+
+  if (args.sentimentSummary) {
+    const { positive, neutral, negative } = args.sentimentSummary;
+    const total = positive + neutral + negative;
+    if (total > 0) {
+      const pct = (n: number) => `${Math.round((n / total) * 100)}%`;
+      parts.push(`Tom da audiência (últimos 14 dias, ${total} comentários): ${pct(positive)} positivo, ${pct(neutral)} neutro, ${pct(negative)} negativo. Quando negativo > 30%, considerar conteúdo que aborde objeções/preocupações.`);
     }
   }
 

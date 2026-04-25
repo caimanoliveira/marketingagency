@@ -241,6 +241,23 @@ export interface ContentPillar {
   createdAt: number;
 }
 
+export type Sentiment = "positive" | "neutral" | "negative";
+
+export interface TopEngager {
+  handle: string;
+  network: Network;
+  commentCount: number;
+  positiveCount: number;
+  negativeCount: number;
+}
+
+export interface SentimentSummary {
+  positive: number;
+  neutral: number;
+  negative: number;
+  unclassified: number;
+}
+
 export interface ReviewLink {
   token: string;
   postId: string;

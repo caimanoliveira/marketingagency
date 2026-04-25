@@ -1034,6 +1034,116 @@ export async function getPillarPerformanceWeekly(
   return results ?? [];
 }
 
+// ---- Audience: raw post comments + sentiment ----
+
+export interface PostCommentRawRow {
+  id: string;
+  user_id: string;
+  post_id: string;
+  target_id: string;
+  network: string;
+  external_comment_id: string | null;
+  commenter_handle: string | null;
+  body: string;
+  posted_at: number | null;
+  fetched_at: number;
+  sentiment: string | null;
+  topics_json: string | null;
+  classified_at: number | null;
+}
+
+export async function upsertRawComment(
+  db: D1Database,
+  params: {
+    id: string; userId: string; postId: string; targetId: string; network: string;
+    externalCommentId: string | null; commenterHandle: string | null; body: string; postedAt: number | null;
+  }
+): Promise<void> {
+  const now = Date.now();
+  await db.prepare(
+    `INSERT INTO post_comments_raw (id, user_id, post_id, target_id, network, external_comment_id, commenter_handle, body, posted_at, fetched_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (network, external_comment_id) DO UPDATE SET
+       body = excluded.body,
+       commenter_handle = excluded.commenter_handle,
+       posted_at = excluded.posted_at,
+       fetched_at = excluded.fetched_at`
+  ).bind(
+    params.id, params.userId, params.postId, params.targetId, params.network,
+    params.externalCommentId, params.commenterHandle, params.body, params.postedAt, now
+  ).run();
+}
+
+export async function listUnclassifiedComments(
+  db: D1Database,
+  userId: string,
+  limit: number
+): Promise<Array<{ id: string; body: string }>> {
+  const { results } = await db.prepare(
+    `SELECT id, body FROM post_comments_raw WHERE user_id = ? AND classified_at IS NULL ORDER BY fetched_at DESC LIMIT ?`
+  ).bind(userId, limit).all<{ id: string; body: string }>();
+  return results ?? [];
+}
+
+export async function setCommentClassification(
+  db: D1Database,
+  id: string,
+  sentiment: string,
+  topics: string[]
+): Promise<void> {
+  await db.prepare(
+    `UPDATE post_comments_raw SET sentiment = ?, topics_json = ?, classified_at = ? WHERE id = ?`
+  ).bind(sentiment, JSON.stringify(topics), Date.now(), id).run();
+}
+
+export interface TopEngagerRow {
+  handle: string;
+  network: string;
+  comment_count: number;
+  positive_count: number;
+  negative_count: number;
+}
+
+export async function getTopEngagers(
+  db: D1Database,
+  userId: string,
+  windowDays: number,
+  limit: number
+): Promise<TopEngagerRow[]> {
+  const cutoff = Date.now() - windowDays * 86_400_000;
+  const { results } = await db.prepare(
+    `SELECT
+       commenter_handle AS handle,
+       network,
+       COUNT(*) AS comment_count,
+       SUM(CASE WHEN sentiment = 'positive' THEN 1 ELSE 0 END) AS positive_count,
+       SUM(CASE WHEN sentiment = 'negative' THEN 1 ELSE 0 END) AS negative_count
+     FROM post_comments_raw
+     WHERE user_id = ? AND fetched_at >= ? AND commenter_handle IS NOT NULL
+     GROUP BY commenter_handle, network
+     ORDER BY comment_count DESC
+     LIMIT ?`
+  ).bind(userId, cutoff, limit).all<TopEngagerRow>();
+  return results ?? [];
+}
+
+export interface SentimentDistRow {
+  sentiment: string | null;
+  c: number;
+}
+
+export async function getSentimentSummary(
+  db: D1Database,
+  userId: string,
+  windowDays: number
+): Promise<SentimentDistRow[]> {
+  const cutoff = Date.now() - windowDays * 86_400_000;
+  const { results } = await db.prepare(
+    `SELECT sentiment, COUNT(*) AS c FROM post_comments_raw WHERE user_id = ? AND fetched_at >= ? GROUP BY sentiment`
+  ).bind(userId, cutoff).all<SentimentDistRow>();
+  return results ?? [];
+}
+
 export interface ReviewLinkRow {
   token: string;
   post_id: string;

@@ -21,6 +21,7 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS meta_connections (id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE, fb_user_id TEXT NOT NULL, fb_user_name TEXT NOT NULL, access_token TEXT NOT NULL, expires_at INTEGER NOT NULL, scopes TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS instagram_accounts (id TEXT PRIMARY KEY, connection_id TEXT NOT NULL, ig_user_id TEXT NOT NULL, ig_username TEXT NOT NULL, fb_page_id TEXT NOT NULL, fb_page_name TEXT NOT NULL, fb_page_access_token TEXT NOT NULL, profile_picture_url TEXT, created_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS ai_variant_outcomes (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, network TEXT, tone TEXT, variant_text TEXT NOT NULL, post_id TEXT, applied_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS post_comments_raw (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, post_id TEXT NOT NULL, target_id TEXT NOT NULL, network TEXT NOT NULL, external_comment_id TEXT, commenter_handle TEXT, body TEXT NOT NULL, posted_at INTEGER, fetched_at INTEGER NOT NULL, sentiment TEXT, topics_json TEXT, classified_at INTEGER)`,
 ];
 
 beforeAll(async () => {
