@@ -9,6 +9,7 @@ import { MediaPicker } from "../components/MediaPicker";
 import { AIAssistant } from "../components/AIAssistant";
 import { Schedule } from "../components/Schedule";
 import { BestTimeChip } from "../components/BestTimeChip";
+import { CommentsThread } from "../components/CommentsThread";
 import { LinkedInTargetPicker } from "../components/LinkedInTargetPicker";
 import { InstagramTargetPicker } from "../components/InstagramTargetPicker";
 import { SkeletonRow } from "../components/Skeleton";
@@ -203,6 +204,8 @@ export function Editor() {
               </div>
             )}
           </div>
+
+          {id && id !== "new" && <CommentsThread postId={id} />}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
