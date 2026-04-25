@@ -8,6 +8,7 @@ import { MediaUploader } from "../components/MediaUploader";
 import { MediaPicker } from "../components/MediaPicker";
 import { AIAssistant } from "../components/AIAssistant";
 import { Schedule } from "../components/Schedule";
+import { BestTimeChip } from "../components/BestTimeChip";
 import { LinkedInTargetPicker } from "../components/LinkedInTargetPicker";
 import { InstagramTargetPicker } from "../components/InstagramTargetPicker";
 import { SkeletonRow } from "../components/Skeleton";
@@ -232,6 +233,10 @@ export function Editor() {
                 <Schedule
                   value={schedules[n]}
                   onChange={(ms) => setSchedules((prev) => ({ ...prev, [n]: ms }))}
+                />
+                <BestTimeChip
+                  network={n}
+                  onPick={(ms) => setSchedules((prev) => ({ ...prev, [n]: ms }))}
                 />
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                   <button

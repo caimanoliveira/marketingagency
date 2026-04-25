@@ -184,6 +184,11 @@ export const api = {
     previous: { totalReach: number; totalEngagement: number; followerGrowth: number; postsPublished: number };
     delta: { totalReachPct: number | null; totalEngagementPct: number | null; followerGrowthPct: number | null; postsPublishedPct: number | null };
   }>("/api/analytics/wow"),
+  sendTimes: (network?: "instagram" | "linkedin" | "tiktok", windowDays = 30) => req<{
+    window: number;
+    network: string | null;
+    items: Array<{ weekday: number; hour: number; network: string; sampleSize: number; avgEngagementRate: number | null }>;
+  }>(`/api/analytics/send-times?window=${windowDays}${network ? `&network=${network}` : ""}`),
 
   // Strategy — Pillars
   listPillars: () => req<{
