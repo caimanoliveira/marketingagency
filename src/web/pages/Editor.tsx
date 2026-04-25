@@ -122,6 +122,26 @@ export function Editor() {
         <h1>{post?.body ? "Editar post" : "Novo post"}</h1>
         <div style={{ display: "flex", gap: 8 }}>
           <button className="btn-danger" onClick={handleDelete}>Excluir</button>
+          <button
+            className="btn-secondary"
+            onClick={async () => {
+              if (!id) return;
+              await saveBase.mutateAsync();
+              await saveTargets.mutateAsync();
+              try {
+                const link = await api.requestReview(id);
+                await navigator.clipboard.writeText(link.url).catch(() => {});
+                alert(`Link de revisão copiado:\n${link.url}\n\nExpira em 7 dias.`);
+                qc.invalidateQueries({ queryKey: ["post", id] });
+              } catch (e) {
+                alert("Falhou ao gerar link: " + (e instanceof Error ? e.message : "erro"));
+              }
+            }}
+            disabled={!body.trim() || saveBase.isPending}
+            title="Cria um link público (válido 7d) que stakeholder usa pra aprovar"
+          >
+            ✉️ Pedir review
+          </button>
           <button className="btn-primary" onClick={handleSave} disabled={saveBase.isPending || saveTargets.isPending}>
             {saveBase.isPending || saveTargets.isPending ? "Salvando..." : "Salvar"}
           </button>

@@ -186,6 +186,12 @@ export const api = {
   }>("/api/analytics/wow"),
   recordVariantApplied: (body: { variantText: string; network?: Network | null; tone?: "formal" | "casual" | "playful" | "direct" | null; postId?: string | null }) =>
     json<{ ok: true }>("/api/ai/variants/applied", "POST", body),
+  requestReview: (postId: string) =>
+    json<{ token: string; url: string; expiresAt: number }>(`/api/posts/${postId}/request-review`, "POST"),
+  listPostComments: (postId: string) =>
+    req<{ items: Array<{ id: string; postId: string; authorLabel: string; body: string; createdAt: number }> }>(`/api/posts/${postId}/comments`),
+  addPostComment: (postId: string, body: string) =>
+    json<{ id: string; postId: string; authorLabel: string; body: string; createdAt: number }>(`/api/posts/${postId}/comments`, "POST", { body }),
   sendTimes: (network?: "instagram" | "linkedin" | "tiktok", windowDays = 30) => req<{
     window: number;
     network: string | null;

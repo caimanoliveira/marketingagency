@@ -3,7 +3,7 @@ export interface MeResponse { userId: string; email: string; }
 export interface HealthResponse { ok: true; app: string; }
 
 export type Network = "instagram" | "tiktok" | "linkedin";
-export type PostStatus = "draft" | "scheduled" | "published" | "failed";
+export type PostStatus = "draft" | "needs_review" | "scheduled" | "published" | "failed";
 export type TargetStatus = "pending" | "scheduled" | "publishing" | "published" | "failed" | "ready_to_post";
 
 export interface Media {
@@ -239,6 +239,34 @@ export interface ContentPillar {
   color: string | null;
   position: number;
   createdAt: number;
+}
+
+export interface ReviewLink {
+  token: string;
+  postId: string;
+  expiresAt: number;
+  usedAt: number | null;
+  decision: "approved" | "rejected" | null;
+  comment: string | null;
+  createdAt: number;
+}
+
+export interface PostComment {
+  id: string;
+  postId: string;
+  authorLabel: string;
+  body: string;
+  createdAt: number;
+}
+
+export interface ReviewView {
+  postId: string;
+  body: string;
+  pillarTitle: string | null;
+  networks: Network[];
+  expired: boolean;
+  alreadyDecided: boolean;
+  decision: "approved" | "rejected" | null;
 }
 
 export interface PillarPerformance {

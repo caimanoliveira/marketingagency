@@ -23,6 +23,7 @@ import {
   listPostsByMonth,
   listFailures,
   resetTargetForRetry,
+  createReviewLink, listPostComments, addPostComment,
   type PostRow,
   type PostTargetRow,
 } from "../db/queries";
@@ -311,6 +312,47 @@ posts.post("/:id/targets/:network/mark-published", async (c) => {
   const ok = await markTargetPublished(c.env.DB, userId, id, target.id, body.externalUrl ?? null);
   if (!ok) return c.json({ error: "not_found" }, 404);
   return c.json({ ok: true });
+});
+
+posts.post("/:id/request-review", async (c) => {
+  const userId = c.get("userId");
+  const id = c.req.param("id");
+  const post = await getPostById(c.env.DB, userId, id);
+  if (!post) return c.json({ error: "not_found" }, 404);
+
+  const tokenBytes = crypto.getRandomValues(new Uint8Array(24));
+  const token = Array.from(tokenBytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+  const expiresAt = Date.now() + 7 * 24 * 3600 * 1000;
+  await createReviewLink(c.env.DB, { token, postId: id, userId, expiresAt });
+  await updatePost(c.env.DB, userId, id, { status: "needs_review" });
+
+  const origin = c.env.APP_ORIGIN || new URL(c.req.url).origin;
+  return c.json({ token, url: `${origin}/review/${token}`, expiresAt }, 201);
+});
+
+posts.get("/:id/comments", async (c) => {
+  const userId = c.get("userId");
+  const id = c.req.param("id");
+  const post = await getPostById(c.env.DB, userId, id);
+  if (!post) return c.json({ error: "not_found" }, 404);
+  const rows = await listPostComments(c.env.DB, id);
+  return c.json({
+    items: rows.map((r) => ({ id: r.id, postId: r.post_id, authorLabel: r.author_label, body: r.body, createdAt: r.created_at })),
+  });
+});
+
+posts.post("/:id/comments", async (c) => {
+  const userId = c.get("userId");
+  const id = c.req.param("id");
+  const post = await getPostById(c.env.DB, userId, id);
+  if (!post) return c.json({ error: "not_found" }, 404);
+  const parsed = await c.req.json().catch(() => null) as { body?: string } | null;
+  if (!parsed?.body || parsed.body.length === 0 || parsed.body.length > 2000) {
+    return c.json({ error: "invalid_request" }, 400);
+  }
+  const cmtId = `cmt_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+  await addPostComment(c.env.DB, { id: cmtId, postId: id, userId, authorLabel: "owner", body: parsed.body });
+  return c.json({ id: cmtId, postId: id, authorLabel: "owner", body: parsed.body, createdAt: Date.now() }, 201);
 });
 
 posts.post("/:id/targets/:network/retry", async (c) => {

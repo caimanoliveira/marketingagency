@@ -1034,6 +1034,68 @@ export async function getPillarPerformanceWeekly(
   return results ?? [];
 }
 
+export interface ReviewLinkRow {
+  token: string;
+  post_id: string;
+  user_id: string;
+  workspace_id: string | null;
+  expires_at: number;
+  used_at: number | null;
+  decision: string | null;
+  comment: string | null;
+  created_at: number;
+}
+
+export async function createReviewLink(
+  db: D1Database,
+  params: { token: string; postId: string; userId: string; expiresAt: number }
+): Promise<void> {
+  await db.prepare(
+    `INSERT INTO review_links (token, post_id, user_id, expires_at, created_at) VALUES (?, ?, ?, ?, ?)`
+  ).bind(params.token, params.postId, params.userId, params.expiresAt, Date.now()).run();
+}
+
+export async function getReviewLinkByToken(db: D1Database, token: string): Promise<ReviewLinkRow | null> {
+  return (await db.prepare("SELECT * FROM review_links WHERE token = ?").bind(token).first<ReviewLinkRow>()) ?? null;
+}
+
+export async function recordReviewDecision(
+  db: D1Database,
+  token: string,
+  decision: "approved" | "rejected",
+  comment: string | null
+): Promise<boolean> {
+  const res = await db.prepare(
+    `UPDATE review_links SET used_at = ?, decision = ?, comment = ? WHERE token = ? AND used_at IS NULL`
+  ).bind(Date.now(), decision, comment, token).run();
+  return res.meta.changes > 0;
+}
+
+export interface PostCommentRow {
+  id: string;
+  post_id: string;
+  user_id: string | null;
+  author_label: string;
+  body: string;
+  created_at: number;
+}
+
+export async function addPostComment(
+  db: D1Database,
+  params: { id: string; postId: string; userId: string | null; authorLabel: string; body: string }
+): Promise<void> {
+  await db.prepare(
+    `INSERT INTO post_comments (id, post_id, user_id, author_label, body, created_at) VALUES (?, ?, ?, ?, ?, ?)`
+  ).bind(params.id, params.postId, params.userId, params.authorLabel, params.body, Date.now()).run();
+}
+
+export async function listPostComments(db: D1Database, postId: string): Promise<PostCommentRow[]> {
+  const { results } = await db.prepare(
+    `SELECT * FROM post_comments WHERE post_id = ? ORDER BY created_at ASC`
+  ).bind(postId).all<PostCommentRow>();
+  return results ?? [];
+}
+
 export interface AIVariantOutcomeRow {
   id: string;
   user_id: string;

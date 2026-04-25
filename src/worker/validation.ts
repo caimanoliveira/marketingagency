@@ -13,7 +13,7 @@ export const UpdatePostSchema = z.object({
   body: z.string().max(5000).optional(),
   mediaId: z.string().nullable().optional(),
   pillarId: z.string().nullable().optional(),
-  status: z.enum(["draft", "scheduled", "published", "failed"]).optional(),
+  status: z.enum(["draft", "needs_review", "scheduled", "published", "failed"]).optional(),
 });
 
 export const UpdateTargetSchema = z.object({
