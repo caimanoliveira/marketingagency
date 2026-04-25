@@ -999,6 +999,47 @@ export async function getPillarPerformanceWeekly(
   return results ?? [];
 }
 
+export interface SendTimeBucketRow {
+  weekday: number;          // 0=Sunday … 6=Saturday (SQLite strftime %w)
+  hour: number;             // 0..23
+  network: string;
+  sample_size: number;
+  avg_engagement_rate: number | null;
+}
+
+export async function getBestSendTimes(
+  db: D1Database,
+  userId: string,
+  network: string | null,
+  windowDays: number
+): Promise<SendTimeBucketRow[]> {
+  const cutoff = Date.now() - windowDays * 86_400_000;
+  const sql = `
+    SELECT
+      CAST(strftime('%w', datetime(t.published_at/1000, 'unixepoch')) AS INTEGER) AS weekday,
+      CAST(strftime('%H', datetime(t.published_at/1000, 'unixepoch')) AS INTEGER) AS hour,
+      t.network AS network,
+      COUNT(*) AS sample_size,
+      AVG(lm.engagement_rate) AS avg_engagement_rate
+    FROM post_targets t
+    JOIN posts p ON p.id = t.post_id
+    LEFT JOIN post_metrics lm ON lm.id = (
+      SELECT id FROM post_metrics WHERE target_id = t.id ORDER BY snapshot_at DESC LIMIT 1
+    )
+    WHERE p.user_id = ?
+      AND t.status = 'published'
+      AND t.published_at IS NOT NULL
+      AND t.published_at >= ?
+      ${network ? "AND t.network = ?" : ""}
+    GROUP BY weekday, hour, t.network
+  `;
+  const stmt = network
+    ? db.prepare(sql).bind(userId, cutoff, network)
+    : db.prepare(sql).bind(userId, cutoff);
+  const { results } = await stmt.all<SendTimeBucketRow>();
+  return results ?? [];
+}
+
 export interface UnclassifiedPostRow {
   id: string;
   body: string;

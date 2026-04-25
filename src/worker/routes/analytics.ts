@@ -3,10 +3,31 @@ import { z } from "zod";
 import type { Env } from "../index";
 import { requireAuth } from "../middleware/requireAuth";
 import { collectMetrics } from "../analytics/collect";
-import { summaryForPeriod, topPosts, summaryForRange } from "../db/queries";
+import { summaryForPeriod, topPosts, summaryForRange, getBestSendTimes } from "../db/queries";
 
 export const analytics = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 analytics.use("*", requireAuth);
+
+analytics.get("/send-times", async (c) => {
+  const userId = c.get("userId");
+  const networkParam = c.req.query("network");
+  const network = networkParam && ["instagram", "linkedin", "tiktok"].includes(networkParam) ? networkParam : null;
+  const windowParam = parseInt(c.req.query("window") ?? "30", 10);
+  const windowDays = Number.isFinite(windowParam) && windowParam > 0 && windowParam <= 365 ? windowParam : 30;
+
+  const rows = await getBestSendTimes(c.env.DB, userId, network, windowDays);
+  return c.json({
+    window: windowDays,
+    network,
+    items: rows.map((r) => ({
+      weekday: r.weekday,
+      hour: r.hour,
+      network: r.network,
+      sampleSize: r.sample_size,
+      avgEngagementRate: r.avg_engagement_rate,
+    })),
+  });
+});
 
 analytics.post("/collect-now", async (c) => {
   const result = await collectMetrics(c.env);
