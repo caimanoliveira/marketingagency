@@ -19,9 +19,9 @@ export function Logo({ size = 28, showWordmark = true, className }: LogoProps) {
         {/* Warm glow — radial gradient flame */}
         <defs>
           <radialGradient id="lume-flame-grad" cx="0.5" cy="0.7" r="0.7">
-            <stop offset="0%" stopColor="#FFB366" />
-            <stop offset="55%" stopColor="#E85D1F" />
-            <stop offset="100%" stopColor="#B8420C" />
+            <stop offset="0%" stopColor="#FFAA6B" />
+            <stop offset="55%" stopColor="#FF6B35" />
+            <stop offset="100%" stopColor="#E84A0A" />
           </radialGradient>
         </defs>
         {/* Flame shape */}
