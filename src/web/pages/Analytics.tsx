@@ -29,31 +29,21 @@ export function Analytics() {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
-        <header>
-          <h1>Analytics</h1>
-          <p style={{ color: "var(--lume-text-muted)", fontSize: 14, margin: "4px 0 0" }}>
-            Métricas agregadas das suas redes e crescimento.
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28, flexWrap: "wrap", gap: 16 }}>
+        <div>
+          <h1 style={{ margin: 0 }}>Analytics</h1>
+          <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--lume-text-inverse)", opacity: 0.55 }}>
+            Métricas agregadas das suas redes conectadas.
           </p>
-        </header>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        </div>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <div className="period-toggle">
-            {([7, 30, 90] as Period[]).map((p) => (
-              <button
-                key={p}
-                className={period === p ? "active" : ""}
-                onClick={() => setPeriod(p)}
-              >
-                {p}d
-              </button>
+            {([7, 30, 90] as Period[]).map(p => (
+              <button key={p} className={period === p ? "active" : ""} onClick={() => setPeriod(p)}>{p}d</button>
             ))}
           </div>
-          <Button
-            variant="secondary"
-            onClick={() => collect.mutate()}
-            loading={collect.isPending}
-          >
-            🔄 Coletar agora
+          <Button variant="secondary" size="sm" onClick={() => collect.mutate()} loading={collect.isPending}>
+            🔄 Coletar métricas
           </Button>
         </div>
       </div>
@@ -142,9 +132,22 @@ export function Analytics() {
           </div>
 
           {(data.postsPublished === 0 && data.totalEngagement === 0) && (
-            <p style={{ color: "var(--lume-text-muted)", textAlign: "center", marginTop: 32, fontSize: 13 }}>
-              Ainda não há dados. Publique alguns posts e clique em "🔄 Coletar agora" pra buscar métricas.
-            </p>
+            <div style={{
+              background: "var(--lume-surface)", border: "1px solid var(--lume-border)",
+              borderRadius: "var(--lume-radius-lg)", padding: "var(--lume-space-8)",
+              textAlign: "center", marginTop: 24,
+            }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>📊</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: "var(--lume-text)", marginBottom: 8 }}>
+                Sem dados ainda
+              </div>
+              <p style={{ color: "var(--lume-text-muted)", fontSize: 14, margin: "0 0 16px", maxWidth: 360, marginInline: "auto" }}>
+                Publique posts pelas redes conectadas e clique em "Coletar métricas" para ver seus números aqui.
+              </p>
+              <Button variant="secondary" onClick={() => collect.mutate()} loading={collect.isPending}>
+                🔄 Coletar agora
+              </Button>
+            </div>
           )}
 
           <TopPostsCard />
