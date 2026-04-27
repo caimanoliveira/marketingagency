@@ -75,23 +75,28 @@ export function CalendarGrid({ year, month, items, onPostClick }: Props) {
               className={`cal-day ${inMonth ? "" : "cal-day-outside"} ${isToday ? "cal-day-today" : ""}`}
             >
               <div className="cal-day-num">{d.getDate()}</div>
-              {dayItems.map((it) => (
-                <div
-                  key={it.id}
-                  className={`cal-item status-${it.status}`}
-                  onClick={() => onPostClick(it.id)}
-                  title={it.body}
-                >
-                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {shortBody(it.body)}
-                  </span>
-                  <span style={{ display: "flex", gap: 2 }}>
-                    {it.networks.map((n) => (
-                      <span key={n} className="cal-net-dot" style={{ background: NETWORKS[n as keyof typeof NETWORKS]?.color ?? "#666" }} />
-                    ))}
-                  </span>
-                </div>
-              ))}
+              {dayItems.map((it) => {
+                const d = new Date(it.scheduledAt);
+                const hm = `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+                return (
+                  <div
+                    key={it.id}
+                    className={`cal-item status-${it.status}`}
+                    onClick={() => onPostClick(it.id)}
+                    title={it.body}
+                  >
+                    <span style={{ fontSize: 9, opacity: 0.7, flexShrink: 0, marginRight: 2 }}>{hm}</span>
+                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 11 }}>
+                      {shortBody(it.body, 22)}
+                    </span>
+                    <span style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+                      {it.networks.map((n) => (
+                        <span key={n} className="cal-net-dot" style={{ background: NETWORKS[n as keyof typeof NETWORKS]?.color ?? "#666" }} />
+                      ))}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           );
         })}
