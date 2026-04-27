@@ -3,7 +3,7 @@ import { api } from "../lib/api";
 
 function chip(label: string, pct: number | null) {
   if (pct === null) return null;
-  const color = pct >= 0 ? "#7ecf8a" : "#ff6b6b";
+  const color = pct >= 0 ? "var(--lume-success)" : "var(--lume-danger)";
   const sign = pct >= 0 ? "+" : "";
   return (
     <span style={{ fontSize: 11, color, marginLeft: 6 }}>

@@ -95,7 +95,7 @@ html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
   background: var(--lume-bg);
-  color: var(--lume-text);
+  color: var(--lume-text-inverse);
   font-family: var(--lume-font-sans);
   font-size: var(--lume-text-base);
   line-height: 1.5;
@@ -103,10 +103,18 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-h1, h2, h3, h4, h5, h6 { font-weight: 600; letter-spacing: -0.01em; color: var(--lume-text); margin: 0; }
+h1, h2, h3, h4, h5, h6 { font-weight: 600; letter-spacing: -0.01em; color: var(--lume-text-inverse); margin: 0; }
 h1 { font-size: var(--lume-text-2xl); line-height: 1.2; }
 h2 { font-size: var(--lume-text-xl); line-height: 1.25; }
 h3 { font-size: var(--lume-text-lg); line-height: 1.3; }
+.lume-card, .lume-auth-card {
+  color: var(--lume-text);
+}
+.lume-card h1, .lume-card h2, .lume-card h3,
+.lume-card h4, .lume-card h5, .lume-card h6,
+.lume-auth-card h1, .lume-auth-card h2, .lume-auth-card h3 {
+  color: var(--lume-text);
+}
 p { margin: 0; }
 a { color: var(--lume-primary); text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -737,4 +745,108 @@ label { display: block; font-size: var(--lume-text-xs); font-weight: 600; color:
   color: var(--lume-text-soft);
   font-size: var(--lume-text-sm);
   background: var(--lume-surface-soft);
+}
+
+/* ============================================
+   Analytics page layout
+   ============================================ */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--lume-space-4);
+  margin-bottom: var(--lume-space-5);
+}
+@media (max-width: 1023px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px)  { .kpi-row { grid-template-columns: 1fr 1fr; } }
+
+.charts-row {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: var(--lume-space-4);
+  margin-bottom: var(--lume-space-5);
+}
+@media (max-width: 1023px) { .charts-row { grid-template-columns: 1fr; } }
+
+.chart-card {
+  background: var(--lume-surface);
+  border: 1px solid var(--lume-border);
+  border-radius: var(--lume-radius-lg);
+  padding: var(--lume-space-5);
+  color: var(--lume-text);
+}
+.chart-card h3 {
+  font-size: var(--lume-text-sm);
+  font-weight: 600;
+  color: var(--lume-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 var(--lume-space-4);
+}
+
+.period-toggle {
+  display: flex;
+  background: var(--lume-surface);
+  border: 1px solid var(--lume-border-strong);
+  border-radius: var(--lume-radius-full);
+  padding: 3px;
+  gap: 2px;
+}
+.period-toggle button {
+  border: none;
+  background: transparent;
+  color: var(--lume-text-muted);
+  font-size: var(--lume-text-xs);
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: var(--lume-radius-full);
+  cursor: pointer;
+  transition: background var(--lume-transition), color var(--lume-transition);
+}
+.period-toggle button:hover { color: var(--lume-text); }
+.period-toggle button.active {
+  background: var(--lume-primary);
+  color: #fff;
+}
+
+/* ============================================
+   KPI Card
+   ============================================ */
+.kpi-card {
+  background: var(--lume-surface);
+  border: 1px solid var(--lume-border);
+  border-radius: var(--lume-radius-lg);
+  padding: var(--lume-space-5);
+  color: var(--lume-text);
+}
+.kpi-label {
+  font-size: var(--lume-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--lume-text-muted);
+  margin-bottom: var(--lume-space-2);
+}
+.kpi-value {
+  font-size: var(--lume-text-2xl);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--lume-text);
+  line-height: 1;
+}
+.kpi-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--lume-text-xs);
+  font-weight: 600;
+  margin-top: var(--lume-space-2);
+  padding: 2px 7px;
+  border-radius: var(--lume-radius-sm);
+}
+.kpi-delta-pos { background: var(--lume-success-bg); color: var(--lume-success); }
+.kpi-delta-neg { background: var(--lume-danger-bg); color: var(--lume-danger); }
+.kpi-hint {
+  font-size: 11px;
+  color: var(--lume-text-soft);
+  margin-top: var(--lume-space-1);
 }
