@@ -807,3 +807,46 @@ label { display: block; font-size: var(--lume-text-xs); font-weight: 600; color:
   background: var(--lume-primary);
   color: #fff;
 }
+
+/* ============================================
+   KPI Card
+   ============================================ */
+.kpi-card {
+  background: var(--lume-surface);
+  border: 1px solid var(--lume-border);
+  border-radius: var(--lume-radius-lg);
+  padding: var(--lume-space-5);
+  color: var(--lume-text);
+}
+.kpi-label {
+  font-size: var(--lume-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--lume-text-muted);
+  margin-bottom: var(--lume-space-2);
+}
+.kpi-value {
+  font-size: var(--lume-text-2xl);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--lume-text);
+  line-height: 1;
+}
+.kpi-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--lume-text-xs);
+  font-weight: 600;
+  margin-top: var(--lume-space-2);
+  padding: 2px 7px;
+  border-radius: var(--lume-radius-sm);
+}
+.kpi-delta-pos { background: var(--lume-success-bg); color: var(--lume-success); }
+.kpi-delta-neg { background: var(--lume-danger-bg); color: var(--lume-danger); }
+.kpi-hint {
+  font-size: 11px;
+  color: var(--lume-text-soft);
+  margin-top: var(--lume-space-1);
+}
