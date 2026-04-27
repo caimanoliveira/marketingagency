@@ -557,7 +557,24 @@ label { display: block; font-size: var(--lume-text-xs); font-weight: 600; color:
   100% { background-position: 800px 0; }
 }
 .skeleton {
-  background: linear-gradient(90deg, var(--lume-surface-soft) 0px, var(--lume-border) 200px, var(--lume-surface-soft) 400px);
+  background: linear-gradient(
+    90deg,
+    #151E35 0px,
+    #1E2D4A 200px,
+    #151E35 400px
+  );
+  background-size: 800px;
+  border-radius: var(--lume-radius-md);
+  animation: lume-shimmer 1.4s infinite linear;
+}
+
+.skeleton-light {
+  background: linear-gradient(
+    90deg,
+    var(--lume-surface-soft) 0px,
+    var(--lume-border) 200px,
+    var(--lume-surface-soft) 400px
+  );
   background-size: 800px;
   border-radius: var(--lume-radius-md);
   animation: lume-shimmer 1.4s infinite linear;
