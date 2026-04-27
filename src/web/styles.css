@@ -127,8 +127,8 @@ button { font-family: inherit; font-size: inherit; }
 }
 
 .lume-sidebar {
-  background: var(--lume-surface);
-  border-right: 1px solid var(--lume-border);
+  background: var(--lume-sidebar-bg);
+  border-right: 1px solid var(--lume-sidebar-border);
   padding: var(--lume-space-5);
   display: flex;
   flex-direction: column;
@@ -177,9 +177,9 @@ button { font-family: inherit; font-size: inherit; }
 }
 .lume-brand-name {
   font-size: var(--lume-text-xl);
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.02em;
-  color: var(--lume-text);
+  color: var(--lume-text-inverse);
 }
 
 .lume-nav { display: flex; flex-direction: column; gap: 2px; }
@@ -187,7 +187,7 @@ button { font-family: inherit; font-size: inherit; }
   font-size: var(--lume-text-xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--lume-text-soft);
+  color: var(--lume-text-nav-section);
   padding: var(--lume-space-3) var(--lume-space-2) var(--lume-space-1);
   font-weight: 600;
 }
@@ -197,20 +197,20 @@ button { font-family: inherit; font-size: inherit; }
   gap: var(--lume-space-3);
   padding: var(--lume-space-2) var(--lume-space-3);
   border-radius: var(--lume-radius-md);
-  color: var(--lume-text-muted);
+  color: var(--lume-text-nav);
   font-size: var(--lume-text-sm);
   font-weight: 500;
   text-decoration: none;
   transition: background var(--lume-transition), color var(--lume-transition);
 }
 .lume-nav a:hover {
-  background: var(--lume-surface-soft);
-  color: var(--lume-text);
+  background: rgba(255, 107, 53, 0.08);
+  color: #CBD5E1;
   text-decoration: none;
 }
 .lume-nav a.active {
-  background: var(--lume-primary-soft);
-  color: var(--lume-primary-active);
+  background: rgba(255, 107, 53, 0.14);
+  color: var(--lume-text-nav-active);
   font-weight: 600;
 }
 .lume-nav a .lume-nav-icon { font-size: 16px; flex-shrink: 0; }
@@ -218,7 +218,7 @@ button { font-family: inherit; font-size: inherit; }
 .lume-sidebar-foot {
   margin-top: auto;
   padding-top: var(--lume-space-4);
-  border-top: 1px solid var(--lume-border);
+  border-top: 1px solid var(--lume-sidebar-border);
   display: flex;
   flex-direction: column;
   gap: var(--lume-space-2);
@@ -232,7 +232,7 @@ button { font-family: inherit; font-size: inherit; }
 }
 .lume-user-email {
   font-size: var(--lume-text-xs);
-  color: var(--lume-text-muted);
+  color: var(--lume-text-nav);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -240,8 +240,8 @@ button { font-family: inherit; font-size: inherit; }
 
 .lume-topbar {
   display: none;
-  background: var(--lume-surface);
-  border-bottom: 1px solid var(--lume-border);
+  background: var(--lume-sidebar-bg);
+  border-bottom: 1px solid var(--lume-sidebar-border);
   padding: var(--lume-space-3) var(--lume-space-4);
   align-items: center;
   justify-content: space-between;
@@ -254,15 +254,15 @@ button { font-family: inherit; font-size: inherit; }
 }
 .lume-hamburger {
   background: transparent;
-  border: 1px solid var(--lume-border);
+  border: 1px solid var(--lume-sidebar-border);
   border-radius: var(--lume-radius-md);
   width: 40px; height: 40px;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
-  color: var(--lume-text);
+  color: var(--lume-text-inverse);
   font-size: 18px;
 }
-.lume-hamburger:hover { background: var(--lume-surface-soft); }
+.lume-hamburger:hover { background: rgba(255, 255, 255, 0.06); }
 
 .lume-content {
   padding: var(--lume-space-6);
