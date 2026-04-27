@@ -624,7 +624,7 @@ label { display: block; font-size: var(--lume-text-xs); font-weight: 600; color:
 .network-preview { background: var(--lume-surface); border: 1px solid var(--lume-border); border-radius: var(--lume-radius-md); padding: var(--lume-space-3); }
 .network-preview header { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; font-size: var(--lume-text-xs); color: var(--lume-text-muted); }
 .network-preview .tag { padding: 2px 6px; border-radius: 4px; font-size: 10px; color: white; font-weight: 600; }
-.network-preview .preview-media { width: 100%; max-height: 320px; object-fit: contain; background: #F0EBE5; border-radius: var(--lume-radius-sm); }
+.network-preview .preview-media { width: 100%; max-height: 320px; object-fit: contain; background: var(--lume-surface-soft); border-radius: var(--lume-radius-sm); }
 .network-preview .preview-body { margin-top: 8px; font-size: var(--lume-text-sm); line-height: 1.5; white-space: pre-wrap; color: var(--lume-text); }
 
 .char-counter { font-size: var(--lume-text-xs); color: var(--lume-text-soft); margin-top: 4px; text-align: right; }
