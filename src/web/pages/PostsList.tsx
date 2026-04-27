@@ -29,7 +29,7 @@ function PendingManualSection() {
     <section style={{ marginBottom: 32 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
         <h2 style={{ fontSize: 18, margin: 0 }}>Pendentes manuais</h2>
-        <Badge color="#C2410C" variant="soft">{data.items.length}</Badge>
+        <Badge color="var(--lume-warning)" variant="soft">{data.items.length}</Badge>
       </div>
       <p style={{ color: "var(--lume-text-muted)", fontSize: 13, margin: "0 0 16px" }}>
         Esses posts chegaram na hora agendada. Copia, publica manualmente no app da rede, e marca como publicado.
@@ -100,7 +100,7 @@ export function PostsList() {
       )}
 
       {!isLoading && items.length > 0 && (
-        <div className="lume-card" style={{ padding: 0, overflow: "hidden" }}>
+        <div className="lume-card lume-table-scroll" style={{ padding: 0 }}>
           <table className="lume-table">
             <thead>
               <tr>

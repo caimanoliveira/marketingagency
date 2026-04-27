@@ -27,9 +27,9 @@ function LinkedInPanel() {
         <p style={{ color: "var(--lume-text-muted)", fontSize: 14, margin: "0 0 12px" }}>
           Não conectado. Clique para autorizar o acesso.
         </p>
-        <Button as="a" href="/api/connections/linkedin/start" variant="primary" size="sm">
+        <a href="/api/connections/linkedin/start" className="lume-btn lume-btn-primary lume-btn-sm">
           Conectar LinkedIn
-        </Button>
+        </a>
       </div>
     );
   }
@@ -113,9 +113,9 @@ function InstagramPanel() {
         <p style={{ color: "var(--lume-text-muted)", fontSize: 14, margin: "0 0 12px" }}>
           Não conectado. Exige conta Instagram Business ligada a uma página do Facebook.
         </p>
-        <Button as="a" href="/api/connections/instagram/start" variant="primary" size="sm">
+        <a href="/api/connections/instagram/start" className="lume-btn lume-btn-primary lume-btn-sm">
           Conectar Instagram
-        </Button>
+        </a>
       </div>
     );
   }

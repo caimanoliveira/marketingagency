@@ -99,14 +99,14 @@ export function Analytics() {
               <h3>Engajamento semanal (4 semanas)</h3>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={data.weeklyEngagement}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1f1f28" />
-                  <XAxis dataKey="weekStart" stroke="#888" tick={{ fontSize: 11 }} />
-                  <YAxis stroke="#888" tick={{ fontSize: 11 }} />
-                  <Tooltip contentStyle={{ background: "#111118", border: "1px solid #1f1f28", borderRadius: 8 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--lume-border)" />
+                  <XAxis dataKey="weekStart" stroke="var(--lume-text-soft)" tick={{ fontSize: 11 }} />
+                  <YAxis stroke="var(--lume-text-soft)" tick={{ fontSize: 11 }} />
+                  <Tooltip contentStyle={{ background: "var(--lume-surface)", border: "1px solid var(--lume-border)", borderRadius: 8 }} />
                   <Legend />
-                  <Bar dataKey="likes" stackId="a" fill="#6e56cf" />
-                  <Bar dataKey="comments" stackId="a" fill="#4a9cff" />
-                  <Bar dataKey="shares" stackId="a" fill="#7ecf8a" />
+                  <Bar dataKey="likes" stackId="a" fill="var(--lume-primary)" />
+                  <Bar dataKey="comments" stackId="a" fill="var(--lume-info)" />
+                  <Bar dataKey="shares" stackId="a" fill="var(--lume-success)" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -134,7 +134,7 @@ export function Analytics() {
                         />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ background: "#111118", border: "1px solid #1f1f28", borderRadius: 8 }} />
+                    <Tooltip contentStyle={{ background: "var(--lume-surface)", border: "1px solid var(--lume-border)", borderRadius: 8 }} />
                   </PieChart>
                 </ResponsiveContainer>
               )}

@@ -57,7 +57,7 @@ export function CalendarGrid({ year, month, items, onPostClick }: Props) {
   }, [items]);
 
   return (
-    <div>
+    <div className="calendar-scroll">
       <div className="calendar-header">
         {WEEKDAYS.map((w) => (
           <div key={w} className="cal-weekday">{w}</div>

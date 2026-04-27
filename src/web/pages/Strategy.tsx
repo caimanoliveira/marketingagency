@@ -254,7 +254,7 @@ function WeeklyPlanSection() {
               {current.rationale && <div style={{ fontSize: 13, color: "var(--lume-text-muted)", marginTop: 8, fontStyle: "italic", maxWidth: 600 }}>{current.rationale}</div>}
             </div>
             {current.status === "approved" ? (
-              <Badge color="#15803D" variant="soft">✓ Aprovado</Badge>
+              <Badge color="var(--lume-success)" variant="soft">✓ Aprovado</Badge>
             ) : (
               <Button onClick={() => setConfirmApprove(true)} loading={approveMut.isPending}>Aprovar todos</Button>
             )}
