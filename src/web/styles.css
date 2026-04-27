@@ -2,64 +2,87 @@
    Lume — Design Tokens
    ============================================ */
 :root {
-  --lume-primary: #E85D1F;
-  --lume-primary-hover: #D14D12;
-  --lume-primary-active: #B8420C;
-  --lume-primary-soft: #FEF1E9;
-  --lume-primary-soft-hover: #FDE4D3;
-  --lume-primary-text-on: #FFFFFF;
+  /* ── Primary accent — orange ── */
+  --lume-primary:              #FF6B35;
+  --lume-primary-hover:        #FF5520;
+  --lume-primary-active:       #E84A0A;
+  --lume-primary-soft:         #FFF0EB;
+  --lume-primary-soft-hover:   #FFE4D6;
+  --lume-primary-text-on:      #FFFFFF;
 
-  --lume-bg: #FFFCFA;
-  --lume-surface: #FFFFFF;
-  --lume-surface-soft: #F7F4F0;
-  --lume-surface-hover: #FAF7F3;
+  /* ── Indigo accent (secondary) ── */
+  --lume-indigo:               #1E40AF;
+  --lume-indigo-soft:          #EEF2FF;
 
-  --lume-border: #EBE6E1;
-  --lume-border-strong: #D6CDC4;
-  --lume-border-focus: #E85D1F;
+  /* ── Page & shell backgrounds ── */
+  --lume-bg:                   #0D1426;
+  --lume-sidebar-bg:           #080F1E;
+  --lume-sidebar-border:       #1A2840;
 
-  --lume-text: #1A1511;
-  --lume-text-muted: #6F6A64;
-  --lume-text-soft: #9C968F;
-  --lume-text-inverse: #FFFCFA;
+  /* ── Card surfaces (stay light) ── */
+  --lume-surface:              #FFFFFF;
+  --lume-surface-soft:         #F0F4FF;
+  --lume-surface-hover:        #E8EEFF;
 
-  --lume-success: #15803D;
-  --lume-success-bg: #E7F5EC;
-  --lume-warning: #C2410C;
-  --lume-warning-bg: #FEF3EA;
-  --lume-danger: #B91C1C;
-  --lume-danger-bg: #FEEBEB;
-  --lume-info: #0369A1;
-  --lume-info-bg: #E6F3FA;
+  /* ── Borders ── */
+  --lume-border:               #E8EDF5;
+  --lume-border-strong:        #D1D9EC;
+  --lume-border-dark:          #1E2D4A;
+  --lume-border-focus:         #FF6B35;
 
-  --lume-radius-sm: 6px;
-  --lume-radius-md: 10px;
-  --lume-radius-lg: 16px;
-  --lume-radius-xl: 24px;
+  /* ── Text on light surfaces ── */
+  --lume-text:                 #111827;
+  --lume-text-muted:           #6B7280;
+  --lume-text-soft:            #9CA3AF;
+  --lume-text-inverse:         #FFFFFF;
+
+  /* ── Text on dark shell/nav ── */
+  --lume-text-nav:             #64748B;
+  --lume-text-nav-active:      #FFFFFF;
+  --lume-text-nav-section:     #374151;
+
+  /* ── Semantic ── */
+  --lume-success:              #15803D;
+  --lume-success-bg:           #E7F5EC;
+  --lume-warning:              #C2410C;
+  --lume-warning-bg:           #FEF3EA;
+  --lume-danger:               #B91C1C;
+  --lume-danger-bg:            #FEEBEB;
+  --lume-info:                 #0369A1;
+  --lume-info-bg:              #E6F3FA;
+
+  /* ── Radius ── */
+  --lume-radius-sm:   6px;
+  --lume-radius-md:   10px;
+  --lume-radius-lg:   16px;
+  --lume-radius-xl:   24px;
   --lume-radius-full: 9999px;
 
-  --lume-space-1: 4px;
-  --lume-space-2: 8px;
-  --lume-space-3: 12px;
-  --lume-space-4: 16px;
-  --lume-space-5: 24px;
-  --lume-space-6: 32px;
-  --lume-space-8: 48px;
+  /* ── Spacing (4px base) ── */
+  --lume-space-1:  4px;
+  --lume-space-2:  8px;
+  --lume-space-3:  12px;
+  --lume-space-4:  16px;
+  --lume-space-5:  24px;
+  --lume-space-6:  32px;
+  --lume-space-8:  48px;
   --lume-space-10: 64px;
 
-  --lume-shadow-sm: 0 1px 2px rgba(26,21,17,0.04);
-  --lume-shadow-md: 0 4px 12px rgba(26,21,17,0.06), 0 1px 3px rgba(26,21,17,0.04);
-  --lume-shadow-lg: 0 16px 40px rgba(26,21,17,0.08), 0 4px 12px rgba(26,21,17,0.04);
-  --lume-shadow-focus: 0 0 0 3px rgba(232,93,31,0.25);
+  /* ── Shadows ── */
+  --lume-shadow-sm:    0 1px 2px rgba(0,0,0,0.12);
+  --lume-shadow-md:    0 4px 12px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.12);
+  --lume-shadow-lg:    0 16px 40px rgba(0,0,0,0.24), 0 4px 12px rgba(0,0,0,0.12);
+  --lume-shadow-focus: 0 0 0 3px rgba(255,107,53,0.35);
 
-  --lume-font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --lume-text-xs: 12px;
-  --lume-text-sm: 13px;
+  /* ── Typography ── */
+  --lume-font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --lume-text-xs:   12px;
+  --lume-text-sm:   13px;
   --lume-text-base: 15px;
-  --lume-text-lg: 18px;
-  --lume-text-xl: 22px;
-  --lume-text-2xl: 28px;
-  --lume-text-3xl: 36px;
+  --lume-text-lg:   18px;
+  --lume-text-xl:   22px;
+  --lume-text-2xl:  28px;
+  --lume-text-3xl:  36px;
 
   --lume-transition: 150ms ease;
 }
@@ -104,8 +127,8 @@ button { font-family: inherit; font-size: inherit; }
 }
 
 .lume-sidebar {
-  background: var(--lume-surface);
-  border-right: 1px solid var(--lume-border);
+  background: var(--lume-sidebar-bg);
+  border-right: 1px solid var(--lume-sidebar-border);
   padding: var(--lume-space-5);
   display: flex;
   flex-direction: column;
@@ -154,9 +177,9 @@ button { font-family: inherit; font-size: inherit; }
 }
 .lume-brand-name {
   font-size: var(--lume-text-xl);
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.02em;
-  color: var(--lume-text);
+  color: var(--lume-text-inverse);
 }
 
 .lume-nav { display: flex; flex-direction: column; gap: 2px; }
@@ -164,7 +187,7 @@ button { font-family: inherit; font-size: inherit; }
   font-size: var(--lume-text-xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--lume-text-soft);
+  color: var(--lume-text-nav-section);
   padding: var(--lume-space-3) var(--lume-space-2) var(--lume-space-1);
   font-weight: 600;
 }
@@ -174,20 +197,20 @@ button { font-family: inherit; font-size: inherit; }
   gap: var(--lume-space-3);
   padding: var(--lume-space-2) var(--lume-space-3);
   border-radius: var(--lume-radius-md);
-  color: var(--lume-text-muted);
+  color: var(--lume-text-nav);
   font-size: var(--lume-text-sm);
   font-weight: 500;
   text-decoration: none;
   transition: background var(--lume-transition), color var(--lume-transition);
 }
 .lume-nav a:hover {
-  background: var(--lume-surface-soft);
-  color: var(--lume-text);
+  background: rgba(255, 107, 53, 0.08);
+  color: #CBD5E1;
   text-decoration: none;
 }
 .lume-nav a.active {
-  background: var(--lume-primary-soft);
-  color: var(--lume-primary-active);
+  background: rgba(255, 107, 53, 0.14);
+  color: var(--lume-text-nav-active);
   font-weight: 600;
 }
 .lume-nav a .lume-nav-icon { font-size: 16px; flex-shrink: 0; }
@@ -195,7 +218,7 @@ button { font-family: inherit; font-size: inherit; }
 .lume-sidebar-foot {
   margin-top: auto;
   padding-top: var(--lume-space-4);
-  border-top: 1px solid var(--lume-border);
+  border-top: 1px solid var(--lume-sidebar-border);
   display: flex;
   flex-direction: column;
   gap: var(--lume-space-2);
@@ -209,7 +232,7 @@ button { font-family: inherit; font-size: inherit; }
 }
 .lume-user-email {
   font-size: var(--lume-text-xs);
-  color: var(--lume-text-muted);
+  color: var(--lume-text-nav);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -217,8 +240,8 @@ button { font-family: inherit; font-size: inherit; }
 
 .lume-topbar {
   display: none;
-  background: var(--lume-surface);
-  border-bottom: 1px solid var(--lume-border);
+  background: var(--lume-sidebar-bg);
+  border-bottom: 1px solid var(--lume-sidebar-border);
   padding: var(--lume-space-3) var(--lume-space-4);
   align-items: center;
   justify-content: space-between;
@@ -231,15 +254,15 @@ button { font-family: inherit; font-size: inherit; }
 }
 .lume-hamburger {
   background: transparent;
-  border: 1px solid var(--lume-border);
+  border: 1px solid var(--lume-sidebar-border);
   border-radius: var(--lume-radius-md);
   width: 40px; height: 40px;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
-  color: var(--lume-text);
+  color: var(--lume-text-inverse);
   font-size: 18px;
 }
-.lume-hamburger:hover { background: var(--lume-surface-soft); }
+.lume-hamburger:hover { background: rgba(255, 255, 255, 0.06); }
 
 .lume-content {
   padding: var(--lume-space-6);
@@ -534,7 +557,24 @@ label { display: block; font-size: var(--lume-text-xs); font-weight: 600; color:
   100% { background-position: 800px 0; }
 }
 .skeleton {
-  background: linear-gradient(90deg, var(--lume-surface-soft) 0px, var(--lume-border) 200px, var(--lume-surface-soft) 400px);
+  background: linear-gradient(
+    90deg,
+    #151E35 0px,
+    #1E2D4A 200px,
+    #151E35 400px
+  );
+  background-size: 800px;
+  border-radius: var(--lume-radius-md);
+  animation: lume-shimmer 1.4s infinite linear;
+}
+
+.skeleton-light {
+  background: linear-gradient(
+    90deg,
+    var(--lume-surface-soft) 0px,
+    var(--lume-border) 200px,
+    var(--lume-surface-soft) 400px
+  );
   background-size: 800px;
   border-radius: var(--lume-radius-md);
   animation: lume-shimmer 1.4s infinite linear;
@@ -584,7 +624,7 @@ label { display: block; font-size: var(--lume-text-xs); font-weight: 600; color:
 .network-preview { background: var(--lume-surface); border: 1px solid var(--lume-border); border-radius: var(--lume-radius-md); padding: var(--lume-space-3); }
 .network-preview header { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; font-size: var(--lume-text-xs); color: var(--lume-text-muted); }
 .network-preview .tag { padding: 2px 6px; border-radius: 4px; font-size: 10px; color: white; font-weight: 600; }
-.network-preview .preview-media { width: 100%; max-height: 320px; object-fit: contain; background: #F0EBE5; border-radius: var(--lume-radius-sm); }
+.network-preview .preview-media { width: 100%; max-height: 320px; object-fit: contain; background: var(--lume-surface-soft); border-radius: var(--lume-radius-sm); }
 .network-preview .preview-body { margin-top: 8px; font-size: var(--lume-text-sm); line-height: 1.5; white-space: pre-wrap; color: var(--lume-text); }
 
 .char-counter { font-size: var(--lume-text-xs); color: var(--lume-text-soft); margin-top: 4px; text-align: right; }
