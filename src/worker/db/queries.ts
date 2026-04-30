@@ -1087,3 +1087,51 @@ export async function markSuggestionApproved(db: D1Database, userId: string, id:
     .bind(Date.now(), id).run();
   return true;
 }
+
+// ---- Reports ----
+
+export interface ReportRow {
+  id: string;
+  user_id: string;
+  title: string | null;
+  period_days: number;
+  token: string;
+  snapshot: string;
+  created_at: number;
+  expires_at: number;
+}
+
+export async function createReport(
+  db: D1Database,
+  params: { id: string; userId: string; title: string | null; periodDays: number; token: string; snapshot: string; expiresAt: number }
+): Promise<void> {
+  const now = Date.now();
+  await db.prepare(
+    `INSERT INTO reports (id, user_id, title, period_days, token, snapshot, created_at, expires_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(params.id, params.userId, params.title, params.periodDays, params.token, params.snapshot, now, params.expiresAt).run();
+}
+
+export async function listReports(db: D1Database, userId: string): Promise<ReportRow[]> {
+  const { results } = await db.prepare(
+    "SELECT * FROM reports WHERE user_id = ? ORDER BY created_at DESC"
+  ).bind(userId).all<ReportRow>();
+  return results ?? [];
+}
+
+export async function getReportByToken(db: D1Database, token: string): Promise<ReportRow | null> {
+  return (await db.prepare(
+    "SELECT * FROM reports WHERE token = ? AND expires_at > ?"
+  ).bind(token, Date.now()).first<ReportRow>()) ?? null;
+}
+
+export async function getReportById(db: D1Database, userId: string, id: string): Promise<ReportRow | null> {
+  return (await db.prepare(
+    "SELECT * FROM reports WHERE id = ? AND user_id = ?"
+  ).bind(id, userId).first<ReportRow>()) ?? null;
+}
+
+export async function deleteReport(db: D1Database, userId: string, id: string): Promise<boolean> {
+  const res = await db.prepare("DELETE FROM reports WHERE id = ? AND user_id = ?").bind(id, userId).run();
+  return res.meta.changes > 0;
+}

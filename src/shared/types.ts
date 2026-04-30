@@ -269,3 +269,26 @@ export interface WeeklySuggestion {
   model: string;
   tokens: { input: number | null; output: number | null; cached: number | null };
 }
+
+export interface ReportSnapshot {
+  generatedAt: number;
+  periodDays: number;
+  accountNames: string[];
+  summary: AnalyticsSummary;
+  topPosts: TopPostItem[];
+}
+
+export interface Report {
+  id: string;
+  title: string | null;
+  periodDays: number;
+  token: string;
+  createdAt: number;
+  expiresAt: number;
+  shareUrl: string;
+}
+
+export interface CreateReportRequest {
+  title?: string;
+  periodDays: 7 | 30 | 90;
+}
