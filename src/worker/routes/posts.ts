@@ -25,8 +25,10 @@ import {
   resetTargetForRetry,
   type PostRow,
   type PostTargetRow,
+  type MediaRow,
 } from "../db/queries";
 import { presignGet } from "../r2/presigned";
+import { randomId } from "../utils/id";
 import type {
   Post,
   PostTarget,
@@ -36,12 +38,6 @@ import type {
 
 export const posts = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 posts.use("*", requireAuth);
-
-function randomId(prefix: string) {
-  const bytes = crypto.getRandomValues(new Uint8Array(12));
-  const hex = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-  return `${prefix}_${hex}`;
-}
 
 function r2Creds(env: Env) {
   return {
@@ -129,11 +125,23 @@ posts.post("/", async (c) => {
 posts.get("/", async (c) => {
   const userId = c.get("userId");
   const rows = await listPosts(c.env.DB, userId);
+
+  // Batch-fetch all media in one query instead of one per post
+  const mediaIds = rows.map((r) => r.media_id).filter((id): id is string => id !== null);
+  const mediaMap = new Map<string, MediaRow>();
+  if (mediaIds.length > 0) {
+    const placeholders = mediaIds.map(() => "?").join(",");
+    const { results: mediaRows } = await c.env.DB.prepare(
+      `SELECT * FROM media WHERE id IN (${placeholders}) AND user_id = ?`
+    ).bind(...mediaIds, userId).all<MediaRow>();
+    for (const m of mediaRows ?? []) mediaMap.set(m.id, m);
+  }
+
   const items: PostListItem[] = await Promise.all(
     rows.map(async (r) => {
       let thumb: string | null = null;
       if (r.media_id) {
-        const m = await getMediaById(c.env.DB, userId, r.media_id);
+        const m = mediaMap.get(r.media_id);
         if (m && m.mime_type.startsWith("image/")) {
           thumb = await presignGet(r2Creds(c.env), m.r2_key, 3600);
         }
@@ -272,7 +280,8 @@ posts.put("/:id/targets", async (c) => {
   }
   await setPostTargets(c.env.DB, id, parsed.networks);
   const updated = await getPostById(c.env.DB, userId, id);
-  return c.json(await hydratePost(c.env, updated!));
+  if (!updated) return c.json({ error: "not_found" }, 404);
+  return c.json(await hydratePost(c.env, updated));
 });
 
 posts.patch("/:id/targets/:network", async (c) => {
@@ -290,7 +299,8 @@ posts.patch("/:id/targets/:network", async (c) => {
   }
   await updateTarget(c.env.DB, id, network.data, parsed);
   const updated = await getPostById(c.env.DB, userId, id);
-  return c.json(await hydratePost(c.env, updated!));
+  if (!updated) return c.json({ error: "not_found" }, 404);
+  return c.json(await hydratePost(c.env, updated));
 });
 
 // Mark a target as published manually

@@ -1,7 +1,6 @@
-const GRAPH = "https://graph.facebook.com/v20.0";
 const GRAPH_V20 = "https://graph.facebook.com/v20.0";
 const OAUTH_BASE = "https://www.facebook.com/v20.0/dialog/oauth";
-const OAUTH_TOKEN = `${GRAPH}/oauth/access_token`;
+const OAUTH_TOKEN = `${GRAPH_V20}/oauth/access_token`;
 
 export function buildOAuthUrl(params: {
   appId: string;
@@ -47,7 +46,7 @@ export async function exchangeForLongLivedToken(args: {
 }
 
 export async function fetchMetaUserInfo(accessToken: string): Promise<{ id: string; name: string }> {
-  const u = new URL(`${GRAPH}/me`);
+  const u = new URL(`${GRAPH_V20}/me`);
   u.searchParams.set("fields", "id,name");
   u.searchParams.set("access_token", accessToken);
   const res = await fetch(u.toString());
@@ -62,7 +61,7 @@ export interface FacebookPage {
 }
 
 export async function fetchPages(accessToken: string): Promise<FacebookPage[]> {
-  const u = new URL(`${GRAPH}/me/accounts`);
+  const u = new URL(`${GRAPH_V20}/me/accounts`);
   u.searchParams.set("fields", "id,name,access_token");
   u.searchParams.set("access_token", accessToken);
   u.searchParams.set("limit", "100");
@@ -79,7 +78,7 @@ export interface IgBusinessAccountInfo {
 }
 
 export async function fetchInstagramBusinessAccount(pageId: string, pageAccessToken: string): Promise<IgBusinessAccountInfo | null> {
-  const u = new URL(`${GRAPH}/${pageId}`);
+  const u = new URL(`${GRAPH_V20}/${pageId}`);
   u.searchParams.set("fields", "instagram_business_account{id,username,profile_picture_url}");
   u.searchParams.set("access_token", pageAccessToken);
   const res = await fetch(u.toString());
@@ -144,21 +143,25 @@ export async function publishInstagram(args: PublishInstagramArgs): Promise<{ ig
   const { id: containerId } = (await createRes.json()) as { id: string };
 
   // Step 2: poll status for videos (images are usually instant)
+  // Max 10s wait: if not ready, throw so the queue consumer can retry.
+  // Never call this from a synchronous HTTP handler — use the queue.
   if (args.mediaType === "video") {
-    const deadline = Date.now() + 30_000;
+    const deadline = Date.now() + 10_000;
+    let ready = false;
     while (Date.now() < deadline) {
-      await new Promise((r) => setTimeout(r, 3_000));
+      await new Promise((r) => setTimeout(r, 2_000));
       const statusUrl = new URL(`${GRAPH_V20}/${containerId}`);
       statusUrl.searchParams.set("fields", "status_code");
       statusUrl.searchParams.set("access_token", args.pageAccessToken);
       const statusRes = await fetch(statusUrl.toString());
       if (!statusRes.ok) continue;
       const { status_code } = (await statusRes.json()) as { status_code?: string };
-      if (status_code === "FINISHED") break;
+      if (status_code === "FINISHED") { ready = true; break; }
       if (status_code === "ERROR" || status_code === "EXPIRED") {
         throw new Error(`ig_container_status_${status_code}`);
       }
     }
+    if (!ready) throw new Error("ig_video_processing_timeout");
   }
 
   // Step 3: publish

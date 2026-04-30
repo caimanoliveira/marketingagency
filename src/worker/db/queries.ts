@@ -642,47 +642,75 @@ export async function summaryForPeriod(
 
   // Follower growth — diff latest vs earliest snapshot in window per network, sum deltas
   const windowStartDate = new Date(windowStart).toISOString().slice(0, 10);
-  const followerRes = await db.prepare(
-    `SELECT network, account_ref,
-       MIN(snapshot_date) AS first_date, MAX(snapshot_date) AS last_date
-     FROM account_metrics
-     WHERE user_id = ? AND snapshot_date >= ? AND followers IS NOT NULL
-     GROUP BY network, account_ref`
-  ).bind(userId, windowStartDate).all<{ network: string; account_ref: string; first_date: string; last_date: string }>();
 
-  let followerGrowth = 0;
-  for (const row of followerRes.results ?? []) {
-    const first = await db.prepare("SELECT followers FROM account_metrics WHERE user_id = ? AND network = ? AND account_ref = ? AND snapshot_date = ?")
-      .bind(userId, row.network, row.account_ref, row.first_date).first<{ followers: number }>();
-    const last = await db.prepare("SELECT followers FROM account_metrics WHERE user_id = ? AND network = ? AND account_ref = ? AND snapshot_date = ?")
-      .bind(userId, row.network, row.account_ref, row.last_date).first<{ followers: number }>();
-    followerGrowth += (last?.followers ?? 0) - (first?.followers ?? 0);
-  }
+  // Single query using CTE + self-join — replaces N+1 pattern (2 queries per network)
+  const growthRow = await db.prepare(
+    `WITH bounds AS (
+       SELECT network, account_ref,
+         MIN(snapshot_date) AS first_date,
+         MAX(snapshot_date) AS last_date
+       FROM account_metrics
+       WHERE user_id = ? AND snapshot_date >= ? AND followers IS NOT NULL
+       GROUP BY network, account_ref
+     )
+     SELECT COALESCE(SUM(
+       COALESCE(last_am.followers, 0) - COALESCE(first_am.followers, 0)
+     ), 0) AS total_growth
+     FROM bounds
+     LEFT JOIN account_metrics first_am
+       ON first_am.user_id = ? AND first_am.network = bounds.network
+       AND first_am.account_ref = bounds.account_ref
+       AND first_am.snapshot_date = bounds.first_date
+     LEFT JOIN account_metrics last_am
+       ON last_am.user_id = ? AND last_am.network = bounds.network
+       AND last_am.account_ref = bounds.account_ref
+       AND last_am.snapshot_date = bounds.last_date`
+  ).bind(userId, windowStartDate, userId, userId).first<{ total_growth: number }>();
+  const followerGrowth = growthRow?.total_growth ?? 0;
 
-  // Weekly engagement bars for last 4 weeks (fixed — independent of period for consistent chart)
-  const weeklyEngagement: Array<{ weekStart: string; likes: number; comments: number; shares: number }> = [];
-  for (let w = 3; w >= 0; w--) {
-    const weekEnd = now - w * 7 * 24 * 3600 * 1000;
-    const weekStartMs = weekEnd - 7 * 24 * 3600 * 1000;
-    const weekRes = await db.prepare(
-      `SELECT
-         COALESCE(SUM(pm.likes), 0) AS likes,
-         COALESCE(SUM(pm.comments), 0) AS comments,
-         COALESCE(SUM(pm.shares), 0) AS shares
-       FROM post_metrics pm
-       JOIN post_targets t ON t.id = pm.target_id
-       JOIN posts p ON p.id = t.post_id
-       WHERE p.user_id = ? AND pm.snapshot_at >= ? AND pm.snapshot_at < ?`
-    ).bind(userId, weekStartMs, weekEnd).first<{ likes: number; comments: number; shares: number }>();
-    const d = new Date(weekStartMs);
-    const weekStart = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    weeklyEngagement.push({
-      weekStart,
-      likes: weekRes?.likes ?? 0,
-      comments: weekRes?.comments ?? 0,
-      shares: weekRes?.shares ?? 0,
-    });
-  }
+  // Weekly engagement bars — 4 weeks in a single conditional-aggregation query
+  const weekMs = 7 * 24 * 3600 * 1000;
+  const weeks = [3, 2, 1, 0].map((w) => {
+    const start = now - (w + 1) * weekMs;
+    const end = now - w * weekMs;
+    const d = new Date(start);
+    const label = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return { start, end, label };
+  });
+  const weeklyRow = await db.prepare(
+    `SELECT
+       COALESCE(SUM(CASE WHEN pm.snapshot_at>=? AND pm.snapshot_at<? THEN COALESCE(pm.likes,0) ELSE 0 END),0) AS w3l,
+       COALESCE(SUM(CASE WHEN pm.snapshot_at>=? AND pm.snapshot_at<? THEN COALESCE(pm.comments,0) ELSE 0 END),0) AS w3c,
+       COALESCE(SUM(CASE WHEN pm.snapshot_at>=? AND pm.snapshot_at<? THEN COALESCE(pm.shares,0) ELSE 0 END),0) AS w3s,
+       COALESCE(SUM(CASE WHEN pm.snapshot_at>=? AND pm.snapshot_at<? THEN COALESCE(pm.likes,0) ELSE 0 END),0) AS w2l,
+       COALESCE(SUM(CASE WHEN pm.snapshot_at>=? AND pm.snapshot_at<? THEN COALESCE(pm.comments,0) ELSE 0 END),0) AS w2c,
+       COALESCE(SUM(CASE WHEN pm.snapshot_at>=? AND pm.snapshot_at<? THEN COALESCE(pm.shares,0) ELSE 0 END),0) AS w2s,
+       COALESCE(SUM(CASE WHEN pm.snapshot_at>=? AND pm.snapshot_at<? THEN COALESCE(pm.likes,0) ELSE 0 END),0) AS w1l,
+       COALESCE(SUM(CASE WHEN pm.snapshot_at>=? AND pm.snapshot_at<? THEN COALESCE(pm.comments,0) ELSE 0 END),0) AS w1c,
+       COALESCE(SUM(CASE WHEN pm.snapshot_at>=? AND pm.snapshot_at<? THEN COALESCE(pm.shares,0) ELSE 0 END),0) AS w1s,
+       COALESCE(SUM(CASE WHEN pm.snapshot_at>=? AND pm.snapshot_at<? THEN COALESCE(pm.likes,0) ELSE 0 END),0) AS w0l,
+       COALESCE(SUM(CASE WHEN pm.snapshot_at>=? AND pm.snapshot_at<? THEN COALESCE(pm.comments,0) ELSE 0 END),0) AS w0c,
+       COALESCE(SUM(CASE WHEN pm.snapshot_at>=? AND pm.snapshot_at<? THEN COALESCE(pm.shares,0) ELSE 0 END),0) AS w0s
+     FROM post_metrics pm
+     JOIN post_targets t ON t.id = pm.target_id
+     JOIN posts p ON p.id = t.post_id
+     WHERE p.user_id = ? AND pm.snapshot_at >= ? AND pm.snapshot_at < ?`
+  ).bind(
+    weeks[0].start, weeks[0].end, weeks[0].start, weeks[0].end, weeks[0].start, weeks[0].end,
+    weeks[1].start, weeks[1].end, weeks[1].start, weeks[1].end, weeks[1].start, weeks[1].end,
+    weeks[2].start, weeks[2].end, weeks[2].start, weeks[2].end, weeks[2].start, weeks[2].end,
+    weeks[3].start, weeks[3].end, weeks[3].start, weeks[3].end, weeks[3].start, weeks[3].end,
+    userId, weeks[0].start, weeks[3].end,
+  ).first<{ w3l:number;w3c:number;w3s:number;w2l:number;w2c:number;w2s:number;w1l:number;w1c:number;w1s:number;w0l:number;w0c:number;w0s:number }>();
+  const weeklyEngagement = weeks.map((wk, i) => {
+    const k = (["w3","w2","w1","w0"] as const)[i];
+    return {
+      weekStart: wk.label,
+      likes: weeklyRow?.[`${k}l` as keyof typeof weeklyRow] as number ?? 0,
+      comments: weeklyRow?.[`${k}c` as keyof typeof weeklyRow] as number ?? 0,
+      shares: weeklyRow?.[`${k}s` as keyof typeof weeklyRow] as number ?? 0,
+    };
+  });
 
   return {
     periodDays: days,
@@ -890,7 +918,8 @@ export async function upsertPillar(
        title = excluded.title,
        description = excluded.description,
        color = excluded.color,
-       position = excluded.position`
+       position = excluded.position
+     WHERE content_pillars.user_id = excluded.user_id`
   ).bind(params.id, params.userId, params.title, params.description, params.color, params.position, Date.now()).run();
 }
 

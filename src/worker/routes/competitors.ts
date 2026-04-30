@@ -12,15 +12,10 @@ import {
   getMetaConnection,
 } from "../db/queries";
 import { fetchCompetitorBasic } from "../integrations/meta";
+import { randomId } from "../utils/id";
 
 export const competitors = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 competitors.use("*", requireAuth);
-
-function randomId(prefix: string) {
-  const bytes = crypto.getRandomValues(new Uint8Array(12));
-  const hex = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-  return `${prefix}_${hex}`;
-}
 
 function todayStr() {
   const d = new Date();

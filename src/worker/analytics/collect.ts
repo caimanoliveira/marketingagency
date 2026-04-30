@@ -2,12 +2,7 @@ import type { Env } from "../index";
 import { getLinkedInConnection, getMetaConnection, upsertAccountMetrics, insertPostMetrics, upsertCompetitorSnapshot } from "../db/queries";
 import { fetchIgAccountMetrics, fetchIgPostMetrics, fetchCompetitorBasic } from "../integrations/meta";
 import { fetchLinkedInPostMetrics } from "../integrations/linkedin";
-
-function randomId(prefix: string) {
-  const bytes = crypto.getRandomValues(new Uint8Array(12));
-  const hex = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-  return `${prefix}_${hex}`;
-}
+import { randomId } from "../utils/id";
 
 function today(): string {
   const d = new Date();
@@ -37,7 +32,7 @@ export async function collectMetrics(env: Env): Promise<{ usersProcessed: number
   return { usersProcessed, errors };
 }
 
-async function collectForUser(env: Env, userId: string): Promise<void> {
+export async function collectForUser(env: Env, userId: string): Promise<void> {
   const snapshotDate = today();
   const now = Date.now();
 

@@ -17,6 +17,11 @@ import {
 
 export const connections = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 
+function safeRedirect(dest: string | null | undefined): string {
+  const d = dest ?? "/";
+  return d.startsWith("/") && !d.startsWith("//") ? d : "/";
+}
+
 const SCOPES = [
   "openid", "profile", "email",
   "w_member_social",
@@ -79,7 +84,7 @@ connections.get("/linkedin/callback", async (c) => {
     orgUrn: o.urn, orgName: o.name, orgLogoUrl: o.logoUrl,
   })));
 
-  return c.redirect(ctx.redirectTo || "/");
+  return c.redirect(safeRedirect(ctx.redirectTo));
 });
 
 const META_SCOPES = [
@@ -122,8 +127,8 @@ connections.get("/instagram/callback", async (c) => {
       redirectUri: metaRedirectUrl(c),
       code,
     });
-  } catch (e) {
-    return c.text(`token_exchange_failed_${e instanceof Error ? e.message : "unknown"}`, 400);
+  } catch {
+    return c.text("token_exchange_failed", 400);
   }
 
   // Exchange for long-lived token
@@ -150,7 +155,7 @@ connections.get("/instagram/callback", async (c) => {
   const igAccounts = await resolveInstagramAccounts(longLived.accessToken);
   await replaceInstagramAccounts(c.env.DB, connId, igAccounts);
 
-  return c.redirect(ctx.redirectTo || "/");
+  return c.redirect(safeRedirect(ctx.redirectTo));
 });
 
 // All other routes require auth

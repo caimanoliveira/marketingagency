@@ -6,17 +6,13 @@ import {
   upsertPillar, listPillars, deletePillar,
   addSource, listSources, removeSource,
   getWeeklySuggestion, listWeeklySuggestions,
+  createPost, setPostTargets, updateTarget,
 } from "../db/queries";
 import { generateWeeklyPlan } from "../ai/strategy";
+import { randomId } from "../utils/id";
 
 export const strategy = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 strategy.use("*", requireAuth);
-
-function randomId(prefix: string) {
-  const bytes = crypto.getRandomValues(new Uint8Array(12));
-  const hex = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-  return `${prefix}_${hex}`;
-}
 
 const CreatePillarSchema = z.object({
   title: z.string().min(1).max(80),
@@ -231,18 +227,12 @@ strategy.post("/weekly-suggestions/:id/approve", async (c) => {
 
   for (const { post } of selected) {
     const postId = randomId("p");
-    await c.env.DB.prepare(
-      "INSERT INTO posts (id, user_id, body, status, created_at, updated_at) VALUES (?, ?, ?, 'draft', ?, ?)"
-    ).bind(postId, userId, post.body, now, now).run();
-
+    await createPost(c.env.DB, { id: postId, userId, body: post.body, mediaId: null });
+    await setPostTargets(c.env.DB, postId, [post.network]);
     const scheduledAt = scheduleAtFromDayTime(suggestion.weekStart, post.day, post.time);
-    const status = scheduledAt !== null && scheduledAt > now ? "scheduled" : "pending";
-    const targetId = `t_${postId}_${post.network}`;
-
-    await c.env.DB.prepare(
-      "INSERT INTO post_targets (id, post_id, network, status, scheduled_at, attempts) VALUES (?, ?, ?, ?, ?, 0)"
-    ).bind(targetId, postId, post.network, status, scheduledAt).run();
-
+    if (scheduledAt !== null) {
+      await updateTarget(c.env.DB, postId, post.network, { scheduledAt });
+    }
     createdPostIds.push(postId);
   }
 

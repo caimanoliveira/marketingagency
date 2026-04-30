@@ -9,6 +9,7 @@ import {
   systemForTone, userForTone,
 } from "../ai/prompts";
 import { logAiGeneration } from "../db/queries";
+import { randomId } from "../utils/id";
 import type {
   GenerateVariationsResponse,
   RewriteForNetworkResponse,
@@ -18,11 +19,6 @@ import type {
 export const ai = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 ai.use("*", requireAuth);
 
-function randomId(prefix: string) {
-  const bytes = crypto.getRandomValues(new Uint8Array(12));
-  const hex = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-  return `${prefix}_${hex}`;
-}
 
 ai.post("/variations", async (c) => {
   const userId = c.get("userId");
