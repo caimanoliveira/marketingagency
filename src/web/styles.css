@@ -75,7 +75,9 @@
   --lume-shadow-focus: 0 0 0 3px rgba(255,107,53,0.35);
 
   /* ── Typography ── */
-  --lume-font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --lume-font-sans:    "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --lume-font-geist:   "Geist", -apple-system, BlinkMacSystemFont, sans-serif;
+  --lume-font-mono:    "Geist Mono", ui-monospace, "Cascadia Code", "Fira Code", monospace;
   --lume-text-xs:   12px;
   --lume-text-sm:   13px;
   --lume-text-base: 15px;
