@@ -1058,3 +1058,70 @@ export async function markSuggestionApproved(db: D1Database, userId: string, id:
     .bind(Date.now(), id).run();
   return true;
 }
+
+// ---- Hook Vault ----
+
+export interface HookRow {
+  id: string;
+  user_id: string;
+  template: string;
+  hook_type: string | null;
+  niche: string | null;
+  source_handle: string | null;
+  network: string | null;
+  view_count: number | null;
+  use_count: number;
+  created_at: number;
+}
+
+export async function createHook(
+  db: D1Database,
+  params: { id: string; userId: string; template: string; hookType: string | null; niche: string | null; sourceHandle: string | null; network: string | null; viewCount: number | null }
+): Promise<void> {
+  await db.prepare(
+    `INSERT INTO hooks (id, user_id, template, hook_type, niche, source_handle, network, view_count, use_count, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`
+  ).bind(
+    params.id, params.userId, params.template, params.hookType, params.niche,
+    params.sourceHandle, params.network, params.viewCount, Date.now()
+  ).run();
+}
+
+export async function listHooks(
+  db: D1Database,
+  userId: string,
+  filters: { q?: string; hookType?: string; network?: string } = {}
+): Promise<HookRow[]> {
+  const clauses = ["user_id = ?"];
+  const binds: unknown[] = [userId];
+  if (filters.hookType) { clauses.push("hook_type = ?"); binds.push(filters.hookType); }
+  if (filters.network) { clauses.push("network = ?"); binds.push(filters.network); }
+  if (filters.q) {
+    clauses.push("(template LIKE ? OR niche LIKE ? OR source_handle LIKE ?)");
+    const like = `%${filters.q}%`;
+    binds.push(like, like, like);
+  }
+  const { results } = await db.prepare(
+    `SELECT * FROM hooks WHERE ${clauses.join(" AND ")} ORDER BY created_at DESC`
+  ).bind(...binds).all<HookRow>();
+  return results ?? [];
+}
+
+export async function getHook(db: D1Database, userId: string, id: string): Promise<HookRow | null> {
+  return (await db.prepare("SELECT * FROM hooks WHERE id = ? AND user_id = ?").bind(id, userId).first<HookRow>()) ?? null;
+}
+
+export async function deleteHook(db: D1Database, userId: string, id: string): Promise<boolean> {
+  const existing = await db.prepare("SELECT id FROM hooks WHERE id = ? AND user_id = ?").bind(id, userId).first();
+  if (!existing) return false;
+  await db.prepare("DELETE FROM hooks WHERE id = ?").bind(id).run();
+  return true;
+}
+
+export async function incrementHookUse(db: D1Database, userId: string, id: string): Promise<number | null> {
+  const existing = await db.prepare("SELECT use_count FROM hooks WHERE id = ? AND user_id = ?").bind(id, userId).first<{ use_count: number }>();
+  if (!existing) return null;
+  const next = existing.use_count + 1;
+  await db.prepare("UPDATE hooks SET use_count = ? WHERE id = ?").bind(next, id).run();
+  return next;
+}

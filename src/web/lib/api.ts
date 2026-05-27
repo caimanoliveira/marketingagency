@@ -16,6 +16,8 @@ import type {
   RewriteForNetworkResponse,
   AdjustToneRequest,
   AdjustToneResponse,
+  Hook,
+  HookType,
 } from "../../shared/types";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -224,4 +226,24 @@ export const api = {
     }>(`/api/strategy/weekly-suggestions/${id}`),
   approveWeeklySuggestion: (id: string, acceptIndices?: number[]) =>
     json<{ createdPostIds: string[] }>(`/api/strategy/weekly-suggestions/${id}/approve`, "POST", acceptIndices ? { acceptIndices } : {}),
+
+  // Hook Vault
+  listHooks: (filters: { q?: string; type?: HookType | ""; network?: Network | "" } = {}) => {
+    const params = new URLSearchParams();
+    if (filters.q) params.set("q", filters.q);
+    if (filters.type) params.set("type", filters.type);
+    if (filters.network) params.set("network", filters.network);
+    const qs = params.toString();
+    return req<{ items: Hook[] }>(`/api/hooks${qs ? `?${qs}` : ""}`);
+  },
+  createHook: (body: {
+    template: string;
+    hookType?: HookType | null;
+    niche?: string | null;
+    sourceHandle?: string | null;
+    network?: Network | null;
+    viewCount?: number | null;
+  }) => json<Hook>("/api/hooks", "POST", body),
+  deleteHook: (id: string) => json<{ ok: true }>(`/api/hooks/${id}`, "DELETE"),
+  useHook: (id: string) => json<{ useCount: number }>(`/api/hooks/${id}/use`, "POST"),
 };

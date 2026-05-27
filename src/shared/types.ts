@@ -257,6 +257,20 @@ export interface SuggestedPost {
   mediaSuggestion: string;
 }
 
+export type HookType = "swap" | "build" | "claim" | "list" | "contrarian" | "story" | "other";
+
+export interface Hook {
+  id: string;
+  template: string;
+  hookType: HookType | null;
+  niche: string | null;
+  sourceHandle: string | null;
+  network: Network | null;
+  viewCount: number | null;
+  useCount: number;
+  createdAt: number;
+}
+
 export interface WeeklySuggestion {
   id: string;
   weekStart: string;

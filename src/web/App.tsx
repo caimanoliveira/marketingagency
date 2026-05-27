@@ -12,6 +12,7 @@ import { Kanban } from "./pages/Kanban";
 import { Analytics } from "./pages/Analytics";
 import { Benchmarks } from "./pages/Benchmarks";
 import { Strategy } from "./pages/Strategy";
+import { HookVault } from "./pages/HookVault";
 import { ToastContainer } from "./ui/toast";
 import "./styles.css";
 
@@ -32,6 +33,7 @@ export function App() {
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/benchmarks" element={<Benchmarks />} />
             <Route path="/strategy" element={<Strategy />} />
+            <Route path="/hooks" element={<HookVault />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
         </Routes>

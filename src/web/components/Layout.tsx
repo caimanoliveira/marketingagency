@@ -11,6 +11,7 @@ import { Skeleton } from "./Skeleton";
 const NAV_ITEMS: Array<{ to: string; label: string; icon: string; section?: string }> = [
   { to: "/posts",      label: "Posts",         icon: "📝", section: "CRIAR" },
   { to: "/posts/new",  label: "Novo post",     icon: "✨" },
+  { to: "/hooks",      label: "Cofre de Hooks", icon: "🪝" },
   { to: "/calendar",   label: "Calendário",    icon: "🗓️" },
   { to: "/kanban",     label: "Kanban",        icon: "🧭" },
   { to: "/media",      label: "Biblioteca",    icon: "🖼️" },
