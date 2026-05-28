@@ -64,6 +64,36 @@ Hipóteses a testar quando os hooks reais forem documentados:
 
 ---
 
+## Posts reais documentados (texto + métricas reais, mar/2026)
+
+Extraídos dos exports LinkedIn + texto real dos posts. Não são o W-01 Nubank nem os L-LI template acima — são 3 posts reais adicionais. Baixo volume geral (perfil ainda pequeno), mas servem de anchor real para o Hook Generator.
+
+### R-2026-03-02 — Eng → PM (melhor dos 3)
+- **Impressões:** 2.421 · alcance 1.650 · 9 reações · 1 save · 2 profile views · +0 seguidores
+- **Hook real:** "Engenheiro de software há 6 anos. Bom tecnicamente. Promovido. Bem pago para a faixa."
+- **Framework:** Social Proof / Story-led + Contrarian ("a maioria resolve o problema errado: atualiza currículo, faz curso de PM…")
+- **ICP:** ICP-04 (adjacente → PM, engenheiro)
+- **Por que foi o melhor dos 3:** persona específica + número (6 anos) na linha 1; vira contrarian no 3º parágrafo. Confirma a tese de "entidade nomeada/número no hook".
+- URL: https://www.linkedin.com/feed/update/urn:li:share:7433881844980563968
+
+### R-2026-03-04 — Decisão de MBA (fraco)
+- **Impressões:** 521 · alcance 352 · 2 reações
+- **Hook real:** "É como lançar um produto sem ter definido o cliente."
+- **Framework:** Comparison/Analogy + Contrarian ("a decisão 'fazer ou não fazer MBA' está errada")
+- **Hipótese do baixo desempenho:** hook abstrato (analogia) sem entidade/número/persona na linha 1 — exatamente o padrão de loser hipotetizado acima.
+- URL: https://www.linkedin.com/feed/update/urn:li:share:7433883464438792192
+
+### R-2026-03-05 — Prod Ops → PM (fraco)
+- **Impressões:** 604 · alcance 393 · 6 reações · 4 profile views · 1 clique botão Premium
+- **Hook real:** "Você quer ir de Prod Ops para PM. Já faz parte do trabalho de discovery, já participa…"
+- **Framework:** Direct Address + Question/Decisão (oferece caminho A vs B)
+- **Hipótese:** Direct Address é forte, mas tópico de nicho (Prod Ops) estreita o alcance; profile views/reações OK relativo ao alcance (intenção alta, volume baixo).
+- URL: https://www.linkedin.com/feed/update/urn:li:share:7435359347364462592
+
+**Leitura cross-3:** o hook com persona+número concreto (R-03-02) bateu ~4-5x os hooks com analogia abstrata (R-03-04/05). Reforça a regra: linha 1 com entidade/número/persona específica.
+
+---
+
 ## 10 Hook Frameworks (catálogo do Hook Generator)
 
 Cada hook gerado deve ser tagueado com 1 framework. Lista de referência:
