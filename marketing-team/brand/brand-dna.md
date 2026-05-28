@@ -38,6 +38,22 @@ Caiman — Senior Product Manager at Amazon. Brazilian, based in Brazil. Coach/m
 - Atacar outros coaches/empresas pelo nome
 - Promessas de comp ("dobre seu salário em 90 dias")
 
+## Ofertas & precificação (de caimanoliveira.com.br)
+
+Três formatos. Piso R$ 300/sessão; preço variável calibrado por 5 fatores.
+
+| Oferta | Preço | Formato | Para quem |
+|---|---|---|---|
+| **Check-up de Decisão** | a partir de R$ 300/sessão | 1× 90min, Decision Canvas parcial | Diagnóstico pontual antes de se comprometer |
+| **Ciclo Travessia** | a partir de R$ 1.200/ciclo (intl USD 350+ via Wise) | 4× 60min em 4-6 sem; Canvas completo + narrativa/LinkedIn + CV + prep entrevista + plano 90d | Transição ou múltiplas decisões conectadas |
+| **Decisões em Contexto** (grupo) | R$ 450/mês (fixo) | 2 encontros/mês, 90min, 6-10 pessoas | Desenvolvimento contínuo + rede de pares |
+
+Fatores de preço variável: +30% senioridade · +50% PJ (empresa paga) · +30% suporte async (Slack) · +40% sprint 14 dias · −15% pacotes longos (12+ sessões). Combinações altas chegam a R$ 1.500+/sessão. Número fica explícito antes da 1ª sessão.
+
+Garantia/risk reversal: sessão de alinhamento gratuita (20 min) antes de qualquer compromisso; "se não fizer sentido, eu digo".
+
+Hero copy do site (referência de voz): "Você não está travado por falta de competência. Está travado por excesso de caminhos sem decisão." / "Não é sobre motivação. É sobre decisão."
+
 ## Comerciais
 
 - CTA preferido: comentar no post ou DM direto. NÃO link em bio na maioria dos posts (LinkedIn penaliza).
@@ -46,20 +62,28 @@ Caiman — Senior Product Manager at Amazon. Brazilian, based in Brazil. Coach/m
 
 ## Concorrentes (referência, não para imitar)
 
-Em mentoria PM BR:
-- Igor Dias — [perfil: preencher]
-- Lipe Boff — [perfil: preencher]
-- (preencher: outros 2-3 mentores PM PT-BR)
+Mentoria 1:1 carreira/PM BR — concorrentes diretos (perfis em `inputs/competitor-content/`):
+- **Diego Eis** (diegoeis.com/mentoria) — mentoria individual por assinatura (1-2 sessões/mês) + biblioteca de conteúdo ("segundo cérebro"). ALERTA DE OVERLAP: posicionamento "troca, não instrução top-down" e "não terceirize suas decisões comigo" é quase idêntico ao nosso "autonomia, não dependência". Nossa diferenciação: PM ATIVO na Amazon (não veterano/criador de conteúdo) + método nomeado (Decision Canvas) + foco em DECISÃO de carreira, não só craft de produto.
+- **PM3** (pm3.com.br) — mentoria em grupo + cursos. Marca grande, escala, mais "formação/curso" que decisão de carreira 1:1.
+- **Casa de Produto** (casadeproduto.com.br/mentoria) — mentoria PO/PM.
+- Igor Dias, Lipe Boff — citados originalmente, mas múltiplas pessoas com esses nomes; não confirmados. Passar URL do LinkedIn p/ perfilar.
 
 PMs influencers PT-BR (não-concorrentes diretos, mas competem por atenção):
-- Bernard De Luna, Joaquim Torres, Pedro Sobral, [adicionar]
+- Bernard De Luna, Joaquim Torres, Pedro Sobral, Diego Eis (também produz conteúdo)
 
 Global benchmark (não concorrente direto, mas referência de craft):
 - Lenny Rachitsky (newsletter + podcast), Shreyas Doshi, Marty Cagan
 
-## Open questions (preencher quando tiver tempo)
+## Resolvido (de caimanoliveira.com.br + histórico)
 
-- [ ] Confirmar lista completa de concorrentes diretos PT-BR
-- [ ] Definir 2-3 hero offers concretos (preço, formato, garantia)
-- [ ] Funil de inbound atual (DM → call → proposta → fechamento) — métricas por etapa
-- [ ] North star metric do canal LinkedIn: leads qualificados/mês? receita atribuída?
+- **Hero offers:** ver "Ofertas & precificação" acima.
+- **Funil de inbound:** formulário de alinhamento (gratuito, 20 min, `source: formulario-alinhamento`) → WhatsApp pessoal (+55 11 94034-7276, resposta ≤24h dias úteis, "sem bot, sem SDR") → proposta/agendamento. Grupo via lista de espera (form → `crm.caimanoliveira.com.br/api/leads/capture`). UTM trackeado via `window.__utm`.
+- **North star (RECOMENDADO, confirmar):** leads qualificados/mês = formulários de alinhamento + DMs qualificadas. Consistente com a regra "Lead inquiries > engagement > impressions".
+- **Concorrentes diretos PT-BR:** ver "Concorrentes" (Diego Eis = overlap mais forte).
+
+## Open questions (ainda pendente)
+
+- [ ] Métricas por etapa do funil (form → call → fechamento) — taxas de conversão reais
+- [ ] Receita atribuída por canal (LinkedIn / Instagram) vs outras fontes
+- [ ] Disambiguar Igor Dias / Lipe Boff (passar URL LinkedIn) se forem alvos
+- [ ] **Decisão de canal:** este scaffold assume LinkedIn-primary, mas a operação atual (sistema PAA/FCC) é Instagram-primary (Carrossel+Reel, Mon 13h / Wed 12h / Fri 12h), LinkedIn replicado. Reconciliar: marketing-team vira Instagram-primary? funde com o sistema PAA? ou fica como braço de replicação LinkedIn?
