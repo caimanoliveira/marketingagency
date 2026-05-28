@@ -1,5 +1,7 @@
 # Marketing Team — Personal Brand + Mentoria (LinkedIn)
 
+> **DEPRECATED 2026-05-28 — consolidated into Opensquad.** Do not run this pipeline. Canonical content system is the Opensquad `conteudo-paa` squad at `~/Documents/Claude/Projects/Mentoria de Carreira e decisão (1)/`; brand source of truth is `_opensquad/_memory/company.md`; migrated strategy assets are in that project's `brand/`. Kept for history only.
+
 Owner: Caiman (Senior PM @ Amazon + coach de transição/aceleração de carreira tech)
 Surface: LinkedIn personal profile (PT-BR primary, occasional EN)
 Goal: Inbound qualified leads for 1:1 mentoria + group cohorts

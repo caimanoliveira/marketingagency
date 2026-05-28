@@ -1,4 +1,11 @@
-# Marketing Team
+# Marketing Team — DEPRECATED (consolidated into Opensquad)
+
+> **DEPRECATED 2026-05-28.** This LinkedIn scaffold was never run and overlapped with Caiman's live Opensquad content operation. It has been consolidated there.
+> - **Canonical system:** the Opensquad `conteudo-paa` squad at `~/Documents/Claude/Projects/Mentoria de Carreira e decisão (1)/` (Instagram-primary, LinkedIn replicated).
+> - **Brand profile:** `_opensquad/_memory/company.md`.
+> - **Migrated strategy assets** (ICP cards, hooks-history + real posts, competitive landscape, SOP-01, voice/banned-phrases): that project's `brand/` folder.
+>
+> Files below are kept for history only — do not build on them.
 
 Weekly LinkedIn content pipeline for Caiman — Senior PM @ Amazon + coach de mentoria para PMs.
 
