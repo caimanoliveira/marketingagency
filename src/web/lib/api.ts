@@ -16,6 +16,9 @@ import type {
   RewriteForNetworkResponse,
   AdjustToneRequest,
   AdjustToneResponse,
+  Report,
+  CreateReportRequest,
+  ReportSnapshot,
 } from "../../shared/types";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -224,4 +227,19 @@ export const api = {
     }>(`/api/strategy/weekly-suggestions/${id}`),
   approveWeeklySuggestion: (id: string, acceptIndices?: number[]) =>
     json<{ createdPostIds: string[] }>(`/api/strategy/weekly-suggestions/${id}/approve`, "POST", acceptIndices ? { acceptIndices } : {}),
+
+  listReports: () => req<{ reports: Report[] }>("/api/reports"),
+  createReport: (body: CreateReportRequest) =>
+    json<{ report: Report }>("/api/reports", "POST", body),
+  deleteReport: (id: string) => json<{ ok: true }>(`/api/reports/${id}`, "DELETE"),
+  getPublicReport: (token: string) =>
+    fetch(`/api/reports/public/${token}`).then(async (res) => {
+      if (!res.ok) throw new Error(`${res.status}`);
+      return res.json() as Promise<{
+        snapshot: ReportSnapshot;
+        title: string | null;
+        periodDays: number;
+        createdAt: number;
+      }>;
+    }),
 };

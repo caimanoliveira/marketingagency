@@ -17,7 +17,7 @@ async function ensureFreshLinkedInToken(env: Env, userId: string): Promise<{ acc
   const conn = await getLinkedInConnection(env.DB, userId);
   if (!conn) throw new Error("not_connected");
   let accessToken = conn.access_token;
-  if (conn.expires_at - 60_000 < Date.now() && conn.refresh_token) {
+  if (conn.expires_at - 5 * 60_000 < Date.now() && conn.refresh_token) {
     const refreshed = await refreshAccessToken(env, conn.refresh_token);
     accessToken = refreshed.accessToken;
     await upsertLinkedInConnection(env.DB, {

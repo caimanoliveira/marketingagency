@@ -9,8 +9,15 @@ export const analytics = new Hono<{ Bindings: Env; Variables: { userId: string }
 analytics.use("*", requireAuth);
 
 analytics.post("/collect-now", async (c) => {
-  const result = await collectMetrics(c.env);
-  return c.json(result);
+  // Only collects for the authenticated user, not all users in the system.
+  const userId = c.get("userId");
+  const { collectForUser } = await import("../analytics/collect");
+  try {
+    await collectForUser(c.env, userId);
+    return c.json({ usersProcessed: 1, errors: [] });
+  } catch (e) {
+    return c.json({ usersProcessed: 0, errors: [e instanceof Error ? e.message : "unknown"] });
+  }
 });
 
 const PeriodSchema = z.coerce.number().pipe(z.union([z.literal(7), z.literal(30), z.literal(90)]));

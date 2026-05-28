@@ -4,16 +4,11 @@ import { requireAuth } from "../middleware/requireAuth";
 import { PresignedUploadSchema, ALLOWED_MIME_TYPES } from "../validation";
 import { presignPut, presignGet } from "../r2/presigned";
 import { createMedia, getMediaById, listMedia, deleteMedia, type MediaRow } from "../db/queries";
+import { randomId } from "../utils/id";
 import type { PresignedUploadResponse, Media } from "../../shared/types";
 
 export const media = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 media.use("*", requireAuth);
-
-function randomId(prefix: string) {
-  const bytes = crypto.getRandomValues(new Uint8Array(12));
-  const hex = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-  return `${prefix}_${hex}`;
-}
 
 function extFromMime(mime: string) {
   switch (mime) {
