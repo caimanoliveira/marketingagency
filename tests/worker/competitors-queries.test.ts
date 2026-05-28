@@ -13,6 +13,10 @@ import {
 
 const USER = "u_w8";
 
+function daysAgo(n: number): string {
+  return new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+}
+
 const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, created_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS posts (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', media_id TEXT, status TEXT NOT NULL DEFAULT 'draft', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)`,
@@ -57,20 +61,23 @@ describe("competitors CRUD", () => {
 
 describe("competitor snapshots", () => {
   it("upsert is idempotent per date", async () => {
+    const today = daysAgo(0);
     await addCompetitor(env.DB, { id: "cs1", userId: USER, network: "instagram", username: "test", displayName: null, profilePictureUrl: null });
-    await upsertCompetitorSnapshot(env.DB, { id: "sn1", competitorId: "cs1", snapshotDate: "2026-04-23", followers: 1000, mediaCount: 50, recentAvgLikes: 120.5, recentAvgComments: 8.2, recentPostsSampled: 9 });
-    await upsertCompetitorSnapshot(env.DB, { id: "sn2", competitorId: "cs1", snapshotDate: "2026-04-23", followers: 1010, mediaCount: 51, recentAvgLikes: 125.0, recentAvgComments: 9.0, recentPostsSampled: 9 });
+    await upsertCompetitorSnapshot(env.DB, { id: "sn1", competitorId: "cs1", snapshotDate: today, followers: 1000, mediaCount: 50, recentAvgLikes: 120.5, recentAvgComments: 8.2, recentPostsSampled: 9 });
+    await upsertCompetitorSnapshot(env.DB, { id: "sn2", competitorId: "cs1", snapshotDate: today, followers: 1010, mediaCount: 51, recentAvgLikes: 125.0, recentAvgComments: 9.0, recentPostsSampled: 9 });
     const snaps = await listCompetitorSnapshots(env.DB, "cs1", 30);
     expect(snaps).toHaveLength(1);
     expect(snaps[0].followers).toBe(1010);
   });
 
   it("list returns recent snapshots in asc date order", async () => {
+    const earlier = daysAgo(6);
+    const later = daysAgo(4);
     await addCompetitor(env.DB, { id: "cs2", userId: USER, network: "instagram", username: "test2", displayName: null, profilePictureUrl: null });
-    await upsertCompetitorSnapshot(env.DB, { id: "snA", competitorId: "cs2", snapshotDate: "2026-04-20", followers: 100, mediaCount: 10, recentAvgLikes: 5, recentAvgComments: 1, recentPostsSampled: 3 });
-    await upsertCompetitorSnapshot(env.DB, { id: "snB", competitorId: "cs2", snapshotDate: "2026-04-22", followers: 110, mediaCount: 11, recentAvgLikes: 6, recentAvgComments: 1, recentPostsSampled: 3 });
+    await upsertCompetitorSnapshot(env.DB, { id: "snA", competitorId: "cs2", snapshotDate: earlier, followers: 100, mediaCount: 10, recentAvgLikes: 5, recentAvgComments: 1, recentPostsSampled: 3 });
+    await upsertCompetitorSnapshot(env.DB, { id: "snB", competitorId: "cs2", snapshotDate: later, followers: 110, mediaCount: 11, recentAvgLikes: 6, recentAvgComments: 1, recentPostsSampled: 3 });
     const snaps = await listCompetitorSnapshots(env.DB, "cs2", 90);
-    expect(snaps.map((s) => s.date)).toEqual(["2026-04-20", "2026-04-22"]);
+    expect(snaps.map((s) => s.date)).toEqual([earlier, later]);
   });
 });
 

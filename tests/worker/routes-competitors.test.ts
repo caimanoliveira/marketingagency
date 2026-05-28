@@ -5,6 +5,10 @@ import { hashPassword, signToken } from "../../src/worker/auth";
 
 const USER = "u_comp_api";
 
+function daysAgo(n: number): string {
+  return new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+}
+
 const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, created_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS meta_connections (id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE, fb_user_id TEXT NOT NULL, fb_user_name TEXT NOT NULL, access_token TEXT NOT NULL, expires_at INTEGER NOT NULL, scopes TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)`,
@@ -141,15 +145,17 @@ describe("GET /api/competitors/:id/snapshots", () => {
     try {
       const addRes = await authedCall("/api/competitors", { method: "POST", body: JSON.stringify({ username: "withdata" }) });
       const { id } = (await addRes.json()) as { id: string };
+      const earlier = daysAgo(6);
+      const later = daysAgo(4);
       await env.DB.prepare("INSERT INTO competitor_snapshots (id, competitor_id, snapshot_date, followers, media_count, created_at) VALUES (?, ?, ?, ?, ?, ?)")
-        .bind("s1", id, "2026-04-20", 100, 50, Date.now()).run();
+        .bind("s1", id, earlier, 100, 50, Date.now()).run();
       await env.DB.prepare("INSERT INTO competitor_snapshots (id, competitor_id, snapshot_date, followers, media_count, created_at) VALUES (?, ?, ?, ?, ?, ?)")
-        .bind("s2", id, "2026-04-22", 110, 51, Date.now()).run();
+        .bind("s2", id, later, 110, 51, Date.now()).run();
       const res = await authedCall(`/api/competitors/${id}/snapshots?days=30`);
       expect(res.status).toBe(200);
       const body = (await res.json()) as { items: Array<{ date: string; followers: number | null }> };
       expect(body.items).toHaveLength(2);
-      expect(body.items[0].date).toBe("2026-04-20");
+      expect(body.items[0].date).toBe(earlier);
       expect(body.items[1].followers).toBe(110);
     } finally { fetchSpy.mockRestore(); }
   });
