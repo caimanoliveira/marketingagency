@@ -51,3 +51,23 @@ export const AdjustToneSchema = z.object({
   body: z.string().min(1).max(5000),
   tone: ToneSchema,
 });
+
+export const HookTypeSchema = z.enum(["swap", "build", "claim", "list", "contrarian", "story", "other"]);
+
+export const CreateHookSchema = z.object({
+  template: z.string().min(3).max(2000),
+  hookType: HookTypeSchema.nullable().optional(),
+  niche: z.string().max(80).nullable().optional(),
+  sourceHandle: z.string().max(80).nullable().optional(),
+  network: NetworkSchema.nullable().optional(),
+  viewCount: z.number().int().nonnegative().nullable().optional(),
+});
+
+export const AddTrendFeedSchema = z.object({
+  url: z.string().url().max(500).refine((u) => u.startsWith("https://"), "must_be_https"),
+  title: z.string().max(120).nullable().optional(),
+});
+
+export const UpdateTrendFeedSchema = z.object({
+  enabled: z.boolean(),
+});

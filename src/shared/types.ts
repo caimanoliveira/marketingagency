@@ -257,6 +257,42 @@ export interface SuggestedPost {
   mediaSuggestion: string;
 }
 
+export type HookType = "swap" | "build" | "claim" | "list" | "contrarian" | "story" | "other";
+
+export interface Hook {
+  id: string;
+  template: string;
+  hookType: HookType | null;
+  niche: string | null;
+  sourceHandle: string | null;
+  network: Network | null;
+  viewCount: number | null;
+  useCount: number;
+  createdAt: number;
+}
+
+export type HookPotential = "high" | "medium" | "low";
+
+export interface TrendItem {
+  id: string;
+  title: string;
+  url: string;
+  source: string | null;
+  summary: string | null;
+  publishedAt: number | null;
+  hookPotential: HookPotential | null;
+  hookAngle: string | null;
+  fetchedAt: number;
+}
+
+export interface TrendFeed {
+  id: string;
+  url: string;
+  title: string | null;
+  enabled: boolean;
+  addedAt: number;
+}
+
 export interface WeeklySuggestion {
   id: string;
   weekStart: string;

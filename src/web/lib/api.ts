@@ -16,6 +16,11 @@ import type {
   RewriteForNetworkResponse,
   AdjustToneRequest,
   AdjustToneResponse,
+  Hook,
+  HookType,
+  TrendItem,
+  TrendFeed,
+  HookPotential,
 } from "../../shared/types";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -224,4 +229,38 @@ export const api = {
     }>(`/api/strategy/weekly-suggestions/${id}`),
   approveWeeklySuggestion: (id: string, acceptIndices?: number[]) =>
     json<{ createdPostIds: string[] }>(`/api/strategy/weekly-suggestions/${id}/approve`, "POST", acceptIndices ? { acceptIndices } : {}),
+
+  // Hook Vault
+  listHooks: (filters: { q?: string; type?: HookType | ""; network?: Network | "" } = {}) => {
+    const params = new URLSearchParams();
+    if (filters.q) params.set("q", filters.q);
+    if (filters.type) params.set("type", filters.type);
+    if (filters.network) params.set("network", filters.network);
+    const qs = params.toString();
+    return req<{ items: Hook[] }>(`/api/hooks${qs ? `?${qs}` : ""}`);
+  },
+  createHook: (body: {
+    template: string;
+    hookType?: HookType | null;
+    niche?: string | null;
+    sourceHandle?: string | null;
+    network?: Network | null;
+    viewCount?: number | null;
+  }) => json<Hook>("/api/hooks", "POST", body),
+  deleteHook: (id: string) => json<{ ok: true }>(`/api/hooks/${id}`, "DELETE"),
+  useHook: (id: string) => json<{ useCount: number }>(`/api/hooks/${id}/use`, "POST"),
+
+  // Trends
+  listTrends: (potential?: HookPotential) =>
+    req<{ items: TrendItem[] }>(`/api/trends${potential ? `?potential=${potential}` : ""}`),
+  refreshTrends: () =>
+    json<{ fetched: number; scored: number; items: TrendItem[] }>("/api/trends/refresh", "POST"),
+  dismissTrend: (id: string) => json<{ ok: true }>(`/api/trends/items/${id}`, "DELETE"),
+  listTrendFeeds: () =>
+    req<{ items: TrendFeed[]; defaults: Array<{ url: string; title: string }>; usingDefaults: boolean }>("/api/trends/feeds"),
+  addTrendFeed: (url: string, title?: string | null) =>
+    json<TrendFeed>("/api/trends/feeds", "POST", { url, title: title ?? null }),
+  setTrendFeedEnabled: (id: string, enabled: boolean) =>
+    json<{ ok: true }>(`/api/trends/feeds/${id}`, "PATCH", { enabled }),
+  removeTrendFeed: (id: string) => json<{ ok: true }>(`/api/trends/feeds/${id}`, "DELETE"),
 };
