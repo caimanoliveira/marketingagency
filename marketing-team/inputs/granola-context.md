@@ -4,13 +4,14 @@
 
 ## How to refresh
 
-Run SOP-01 to extract cross-cutting patterns from Granola meeting notes for the last 30 days. Paste the output below in the structured section. Anonymize all names (use "PM Pleno em fintech", "ex-Director em banco médio", etc.).
+Run **SOP-01** (`../SOP-01-granola-synthesis.md`) to extract cross-cutting patterns from Granola meeting notes for the last 30 days. It can pull notes via the Granola MCP or take pasted notes. Paste its output below in the structured section. Anonymize all names (use "PM Pleno em fintech", "ex-Director em banco médio", etc.).
 
-SOP-01 should extract:
+SOP-01 extracts:
 - Recurring questions across sessions (top 5)
 - Recurring blockers/decisions (top 5)
 - New themes appearing this cycle that weren't there last cycle
 - Quotable mentee phrasing (verbatim, anonymized) — useful for Content Writer to mirror real language
+- Signals to flag to the Content Writer (hot vs fading patterns, mapped to ICPs)
 
 ## Structured output (paste here)
 
