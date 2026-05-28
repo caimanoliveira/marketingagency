@@ -16,6 +16,7 @@ export function systemForStrategy(): string {
   return [
     "Você é um estrategista de conteúdo sênior que monta agendas editoriais semanais para redes sociais (Instagram, TikTok, LinkedIn).",
     "Monta planos pragmáticos, com variedade de formatos e tons, alinhados aos pilares de conteúdo do usuário.",
+    "Quando houver hooks vencedores (que já performaram acima da média), reaproveite e adapte esses padrões nos novos hooks.",
     "Responde APENAS em JSON válido no formato:",
     `{"rationale":"resumo curto do porquê dessa agenda","posts":[{"day":"seg|ter|qua|qui|sex|sab|dom","time":"HH:MM","network":"instagram|tiktok|linkedin","pillarId":"id ou null","format":"post|reels|carousel|short-video","hook":"primeira frase chamativa","body":"copy completo","media_suggestion":"ideia visual"}]}`,
     "Sem markdown, sem comentários fora do JSON.",
@@ -32,6 +33,7 @@ export function userForStrategy(args: {
   radarSamples: RadarSample[];
   recentOwnPosts: Array<{ network: string; body: string; publishedAt: number | null }>;
   targetNetworks: string[];
+  winningHooks?: Array<{ template: string; avgEngagement: number; posts: number }>;
 }): string {
   const parts: string[] = [];
   parts.push(`Semana começando: ${args.weekStart}`);
@@ -54,6 +56,13 @@ export function userForStrategy(args: {
     parts.push("Top posts últimos 30d (o que funcionou):");
     for (const t of args.topPosts.slice(0, 5)) {
       parts.push(`  - [${t.network}] ${t.body.slice(0, 120)} (likes: ${t.likes ?? "?"})`);
+    }
+  }
+
+  if (args.winningHooks && args.winningHooks.length > 0) {
+    parts.push("Hooks vencedores (reaproveite esses padrões):");
+    for (const h of args.winningHooks) {
+      parts.push(`  - "${h.template.slice(0, 120)}" (${h.posts} post(s), ${h.avgEngagement} eng médio)`);
     }
   }
 

@@ -147,6 +147,14 @@ export const api = {
 
   collectMetricsNow: () => json<{ usersProcessed: number; errors: string[] }>("/api/analytics/collect-now", "POST"),
 
+  heaters: (days = 30) => req<{
+    median: number;
+    items: Array<{
+      postId: string; body: string; hookId: string | null; networks: string[];
+      publishedAt: number | null; engagement: number; reach: number; ratio: number;
+    }>;
+  }>(`/api/analytics/heaters?days=${days}`),
+
   postPerformance: () => req<{
     items: Array<{
       postId: string;
@@ -231,11 +239,12 @@ export const api = {
     json<{ createdPostIds: string[] }>(`/api/strategy/weekly-suggestions/${id}/approve`, "POST", acceptIndices ? { acceptIndices } : {}),
 
   // Hook Vault
-  listHooks: (filters: { q?: string; type?: HookType | ""; network?: Network | "" } = {}) => {
+  listHooks: (filters: { q?: string; type?: HookType | ""; network?: Network | ""; winner?: boolean } = {}) => {
     const params = new URLSearchParams();
     if (filters.q) params.set("q", filters.q);
     if (filters.type) params.set("type", filters.type);
     if (filters.network) params.set("network", filters.network);
+    if (filters.winner) params.set("winner", "1");
     const qs = params.toString();
     return req<{ items: Hook[] }>(`/api/hooks${qs ? `?${qs}` : ""}`);
   },

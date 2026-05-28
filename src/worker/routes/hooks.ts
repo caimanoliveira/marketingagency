@@ -2,11 +2,16 @@ import { Hono } from "hono";
 import type { Env } from "../index";
 import { requireAuth } from "../middleware/requireAuth";
 import { CreateHookSchema } from "../validation";
-import { createHook, listHooks, getHook, deleteHook, incrementHookUse, type HookRow } from "../db/queries";
+import {
+  createHook, listHooks, getHook, deleteHook, incrementHookUse,
+  hookPerformance, publishedEngagementMedian, type HookRow, type HookPerformance,
+} from "../db/queries";
 import type { Hook, HookType, Network } from "../../shared/types";
 
 export const hooks = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 hooks.use("*", requireAuth);
+
+const WINNER_MULTIPLIER = 2;
 
 function randomId(prefix: string) {
   const bytes = crypto.getRandomValues(new Uint8Array(12));
@@ -14,7 +19,9 @@ function randomId(prefix: string) {
   return `${prefix}_${hex}`;
 }
 
-function toPublic(r: HookRow): Hook {
+function toPublic(r: HookRow, perf?: HookPerformance, winnerThreshold = 0): Hook {
+  const avgEngagement = perf?.avgEngagement ?? 0;
+  const postsPublished = perf?.postsPublished ?? 0;
   return {
     id: r.id,
     template: r.template,
@@ -25,6 +32,9 @@ function toPublic(r: HookRow): Hook {
     viewCount: r.view_count,
     useCount: r.use_count,
     createdAt: r.created_at,
+    postsPublished,
+    avgEngagement,
+    isWinner: postsPublished > 0 && winnerThreshold > 0 && avgEngagement >= winnerThreshold,
   };
 }
 
@@ -33,8 +43,17 @@ hooks.get("/", async (c) => {
   const q = c.req.query("q")?.trim() || undefined;
   const hookType = c.req.query("type")?.trim() || undefined;
   const network = c.req.query("network")?.trim() || undefined;
-  const rows = await listHooks(c.env.DB, userId, { q, hookType, network });
-  return c.json({ items: rows.map(toPublic) });
+  const onlyWinners = c.req.query("winner") === "1";
+
+  const [rows, perf, med] = await Promise.all([
+    listHooks(c.env.DB, userId, { q, hookType, network }),
+    hookPerformance(c.env.DB, userId),
+    publishedEngagementMedian(c.env.DB, userId, 90),
+  ]);
+  const winnerThreshold = med * WINNER_MULTIPLIER;
+  let items = rows.map((r) => toPublic(r, perf.get(r.id), winnerThreshold));
+  if (onlyWinners) items = items.filter((h) => h.isWinner);
+  return c.json({ items });
 });
 
 hooks.post("/", async (c) => {

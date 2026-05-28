@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { Env } from "../index";
 import { requireAuth } from "../middleware/requireAuth";
 import { collectMetrics } from "../analytics/collect";
-import { summaryForPeriod, topPosts, summaryForRange } from "../db/queries";
+import { summaryForPeriod, topPosts, summaryForRange, heaters } from "../db/queries";
 
 export const analytics = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
 analytics.use("*", requireAuth);
@@ -23,6 +23,13 @@ analytics.get("/summary", async (c) => {
   if (!periodRes.success) return c.json({ error: "invalid_period" }, 400);
   const summary = await summaryForPeriod(c.env.DB, userId, periodRes.data);
   return c.json(summary);
+});
+
+analytics.get("/heaters", async (c) => {
+  const userId = c.get("userId");
+  const days = Math.max(1, Math.min(365, parseInt(c.req.query("days") ?? "30", 10) || 30));
+  const result = await heaters(c.env.DB, userId, { days, multiplier: 2 });
+  return c.json(result);
 });
 
 analytics.get("/account-timeseries", async (c) => {

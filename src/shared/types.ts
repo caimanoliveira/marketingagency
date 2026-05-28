@@ -60,6 +60,7 @@ export interface CreatePostRequest {
   body?: string;
   mediaId?: string | null;
   networks?: Network[];
+  hookId?: string | null;
 }
 export interface UpdatePostRequest {
   body?: string;
@@ -269,6 +270,9 @@ export interface Hook {
   viewCount: number | null;
   useCount: number;
   createdAt: number;
+  postsPublished: number;
+  avgEngagement: number;
+  isWinner: boolean;
 }
 
 export type HookPotential = "high" | "medium" | "low";

@@ -6,6 +6,7 @@ export const CreatePostSchema = z.object({
   body: z.string().max(5000).default(""),
   mediaId: z.string().nullable().optional(),
   networks: z.array(NetworkSchema).optional().default([]),
+  hookId: z.string().max(64).nullable().optional(),
 });
 
 export const UpdatePostSchema = z.object({

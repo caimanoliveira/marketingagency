@@ -7,9 +7,70 @@ import { KpiCard, formatNumber } from "../components/KpiCard";
 import { SkeletonRow } from "../components/Skeleton";
 import { WoWChips } from "../components/WoWChips";
 import { TopPostsCard } from "../components/TopPostsCard";
-import { Button } from "../ui";
+import { Button, Badge } from "../ui";
+import { toasts } from "../ui/toast";
 
 type Period = 7 | 30 | 90;
+
+function firstLine(body: string): string {
+  const line = body.split("\n").map((l) => l.trim()).find((l) => l.length > 0) ?? body.trim();
+  return line.length >= 3 ? line.slice(0, 200) : body.trim().slice(0, 200);
+}
+
+function HeatersSection({ days }: { days: Period }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["heaters", days],
+    queryFn: () => api.heaters(days),
+  });
+
+  const saveHook = useMutation({
+    mutationFn: (item: { body: string; engagement: number }) =>
+      api.createHook({ template: firstLine(item.body), viewCount: item.engagement || null }),
+    onSuccess: () => toasts.success("Hook salvo no Cofre"),
+    onError: (e: Error) => toasts.error("Falha ao salvar", e.message),
+  });
+
+  if (isLoading) return null;
+  const items = data?.items ?? [];
+  if (items.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: 24 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 12 }}>
+        <h3 style={{ margin: 0 }}>🏆 Vencedores</h3>
+        <span style={{ fontSize: 12, color: "var(--lume-text-muted)" }}>
+          bateram 2× a mediana de engajamento ({formatNumber(data?.median ?? 0)})
+        </span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {items.map((it) => (
+          <div key={it.postId} style={{
+            background: "var(--lume-surface)", border: "1px solid var(--lume-border)",
+            borderRadius: "var(--lume-radius-lg)", padding: "var(--lume-space-4)",
+            display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap",
+          }}>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <div style={{ fontSize: 14, color: "var(--lume-text)", fontWeight: 500 }}>{firstLine(it.body)}</div>
+              <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+                {it.networks.map((n) => (
+                  <Badge key={n} color={NETWORKS[n as keyof typeof NETWORKS]?.color ?? "#666"} variant="soft">{n}</Badge>
+                ))}
+                <Badge color="#059669" variant="soft">{it.ratio.toFixed(1)}× a mediana</Badge>
+              </div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "var(--lume-text)", lineHeight: 1 }}>{formatNumber(it.engagement)}</div>
+              <div style={{ fontSize: 11, color: "var(--lume-text-muted)" }}>engajamento</div>
+            </div>
+            <Button variant="secondary" size="sm" loading={saveHook.isPending} onClick={() => saveHook.mutate(it)}>
+              Salvar hook
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function Analytics() {
   const qc = useQueryClient();
@@ -149,6 +210,8 @@ export function Analytics() {
               </Button>
             </div>
           )}
+
+          <HeatersSection days={period} />
 
           <TopPostsCard />
         </>

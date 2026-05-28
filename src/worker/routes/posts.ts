@@ -117,6 +117,7 @@ posts.post("/", async (c) => {
     userId,
     body: parsed.body,
     mediaId: parsed.mediaId ?? null,
+    hookId: parsed.hookId ?? null,
   });
   if (parsed.networks && parsed.networks.length > 0) {
     await setPostTargets(c.env.DB, id, parsed.networks);

@@ -3,6 +3,7 @@ import { callClaudeJson, MODEL } from "./claude";
 import { systemForStrategy, userForStrategy } from "./strategy-prompts";
 import {
   listPillars, listSources, getMetaConnection, saveWeeklySuggestion,
+  listHooks, hookPerformance,
   type SuggestedPostJson, type ContentPillarRow, type InspirationSourceRow,
 } from "../db/queries";
 import { fetchCompetitorBasic } from "../integrations/meta";
@@ -87,6 +88,19 @@ export async function generateWeeklyPlan(
     }
   }
 
+  // Winning hooks — templates whose attributed posts performed best (loop feedback).
+  const perf = await hookPerformance(env.DB, userId);
+  let winningHooks: Array<{ template: string; avgEngagement: number; posts: number }> = [];
+  if (perf.size > 0) {
+    const allHooks = await listHooks(env.DB, userId, {});
+    winningHooks = allHooks
+      .map((h) => ({ hook: h, p: perf.get(h.id) }))
+      .filter((x): x is { hook: typeof x.hook; p: NonNullable<typeof x.p> } => !!x.p && x.p.postsPublished > 0)
+      .sort((a, b) => b.p.avgEngagement - a.p.avgEngagement)
+      .slice(0, 5)
+      .map((x) => ({ template: x.hook.template, avgEngagement: x.p.avgEngagement, posts: x.p.postsPublished }));
+  }
+
   const targetNetworks = Array.from(new Set(recentOwnPosts.map((p) => p.network)));
   // Fallback when user has no history yet
   if (targetNetworks.length === 0) targetNetworks.push("linkedin", "instagram");
@@ -103,6 +117,7 @@ export async function generateWeeklyPlan(
     radarSamples,
     recentOwnPosts,
     targetNetworks,
+    winningHooks,
   });
 
   const result = await callClaudeJson<{ rationale: string; posts: Array<{ day: string; time: string; network: string; pillarId: string | null; format: string; hook: string; body: string; media_suggestion: string }> }>(

@@ -35,12 +35,13 @@ export function HookVault() {
 
   const [q, setQ] = useState("");
   const [typeFilter, setTypeFilter] = useState<HookType | "">("");
+  const [winnersOnly, setWinnersOnly] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState<Hook | null>(null);
   const [showForm, setShowForm] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["hooks", q, typeFilter],
-    queryFn: () => api.listHooks({ q: q.trim() || undefined, type: typeFilter }),
+    queryKey: ["hooks", q, typeFilter, winnersOnly],
+    queryFn: () => api.listHooks({ q: q.trim() || undefined, type: typeFilter, winner: winnersOnly }),
   });
 
   const removeMut = useMutation({
@@ -50,7 +51,7 @@ export function HookVault() {
 
   const useMut = useMutation({
     mutationFn: async (hook: Hook) => {
-      const post = await api.createPost({ body: hook.template, networks: [] });
+      const post = await api.createPost({ body: hook.template, networks: [], hookId: hook.id });
       await api.useHook(hook.id).catch(() => {});
       return post;
     },
@@ -88,7 +89,8 @@ export function HookVault() {
           onChange={(e) => setQ(e.target.value)}
         />
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <FilterChip active={typeFilter === ""} onClick={() => setTypeFilter("")} label="Todos" color="var(--lume-text-muted)" />
+          <FilterChip active={winnersOnly} onClick={() => setWinnersOnly((w) => !w)} label="🏆 Vencedores" color="#059669" />
+          <FilterChip active={typeFilter === "" && !winnersOnly} onClick={() => { setTypeFilter(""); setWinnersOnly(false); }} label="Todos" color="var(--lume-text-muted)" />
           {HOOK_TYPES.map((t) => (
             <FilterChip
               key={t.value}
@@ -187,6 +189,7 @@ function HookCard({ hook, onUse, useLoading, onRemove }: { hook: Hook; onUse: ()
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        {hook.isWinner && <Badge color="#059669" variant="soft">🏆 VENCEDOR</Badge>}
         {meta && <Badge color={meta.color} variant="soft">{meta.label}</Badge>}
         {net && <Badge color={net.color} variant="soft">{net.label}</Badge>}
         {hook.niche && <Badge>#{hook.niche}</Badge>}
@@ -198,6 +201,11 @@ function HookCard({ hook, onUse, useLoading, onRemove }: { hook: Hook; onUse: ()
         )}
         {hook.useCount > 0 && (
           <span style={{ fontSize: 12, color: "var(--lume-text-muted)" }}>↺ usado {hook.useCount}×</span>
+        )}
+        {hook.postsPublished > 0 && (
+          <span style={{ fontSize: 12, color: "var(--lume-text-muted)" }}>
+            📈 {hook.postsPublished} {hook.postsPublished === 1 ? "post" : "posts"} · {formatViews(hook.avgEngagement)} eng médio
+          </span>
         )}
         <div style={{ flex: 1 }} />
         <Button variant="secondary" size="sm" onClick={copy}>Copiar</Button>

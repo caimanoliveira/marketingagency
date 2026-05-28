@@ -95,12 +95,12 @@ export interface PostTargetRow {
 
 export async function createPost(
   db: D1Database,
-  params: { id: string; userId: string; body: string; mediaId: string | null }
+  params: { id: string; userId: string; body: string; mediaId: string | null; hookId?: string | null }
 ): Promise<void> {
   const now = Date.now();
   await db
-    .prepare("INSERT INTO posts (id, user_id, body, media_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'draft', ?, ?)")
-    .bind(params.id, params.userId, params.body, params.mediaId, now, now)
+    .prepare("INSERT INTO posts (id, user_id, body, media_id, hook_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'draft', ?, ?)")
+    .bind(params.id, params.userId, params.body, params.mediaId, params.hookId ?? null, now, now)
     .run();
 }
 
@@ -1226,4 +1226,127 @@ export async function deleteTrendItem(db: D1Database, userId: string, id: string
 
 export async function pruneTrendItems(db: D1Database, userId: string, olderThanMs: number): Promise<void> {
   await db.prepare("DELETE FROM trend_items WHERE user_id = ? AND fetched_at < ?").bind(userId, olderThanMs).run();
+}
+
+// ---- Performance loop ----
+
+// Engagement of a published post = sum, across its published targets, of the
+// latest metric snapshot's (likes + comments + shares + saved).
+const POST_ENGAGEMENT_SUBQUERY = `
+  SELECT t.post_id AS post_id,
+         SUM(COALESCE(pm.likes,0)+COALESCE(pm.comments,0)+COALESCE(pm.shares,0)+COALESCE(pm.saved,0)) AS eng,
+         SUM(COALESCE(pm.reach,0)) AS reach,
+         MIN(t.published_at) AS published_at
+  FROM post_targets t
+  LEFT JOIN post_metrics pm ON pm.id = (
+    SELECT id FROM post_metrics WHERE target_id = t.id ORDER BY snapshot_at DESC LIMIT 1
+  )
+  WHERE t.status = 'published'
+  GROUP BY t.post_id`;
+
+function median(values: number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+export interface HookPerformance {
+  hookId: string;
+  postsPublished: number;
+  avgEngagement: number;
+  bestEngagement: number;
+}
+
+export async function hookPerformance(db: D1Database, userId: string): Promise<Map<string, HookPerformance>> {
+  const { results } = await db.prepare(
+    `SELECT p.hook_id AS hookId,
+            COUNT(DISTINCT p.id) AS postsPublished,
+            AVG(pe.eng) AS avgEngagement,
+            MAX(pe.eng) AS bestEngagement
+     FROM posts p
+     JOIN (${POST_ENGAGEMENT_SUBQUERY}) pe ON pe.post_id = p.id
+     WHERE p.user_id = ? AND p.hook_id IS NOT NULL
+     GROUP BY p.hook_id`
+  ).bind(userId).all<{ hookId: string; postsPublished: number; avgEngagement: number | null; bestEngagement: number | null }>();
+  const map = new Map<string, HookPerformance>();
+  for (const r of results ?? []) {
+    map.set(r.hookId, {
+      hookId: r.hookId,
+      postsPublished: r.postsPublished,
+      avgEngagement: Math.round(r.avgEngagement ?? 0),
+      bestEngagement: Math.round(r.bestEngagement ?? 0),
+    });
+  }
+  return map;
+}
+
+// Median engagement across the user's published posts in the last `days`.
+export async function publishedEngagementMedian(db: D1Database, userId: string, days: number): Promise<number> {
+  const since = Date.now() - days * 24 * 3600 * 1000;
+  const { results } = await db.prepare(
+    `SELECT pe.eng AS eng
+     FROM posts p
+     JOIN (${POST_ENGAGEMENT_SUBQUERY}) pe ON pe.post_id = p.id
+     WHERE p.user_id = ? AND pe.published_at >= ?`
+  ).bind(userId, since).all<{ eng: number | null }>();
+  return median((results ?? []).map((r) => r.eng ?? 0));
+}
+
+export interface HeaterPost {
+  postId: string;
+  body: string;
+  hookId: string | null;
+  networks: string[];
+  publishedAt: number | null;
+  engagement: number;
+  reach: number;
+  ratio: number;
+}
+
+export async function heaters(
+  db: D1Database,
+  userId: string,
+  opts: { days?: number; multiplier?: number; limit?: number } = {}
+): Promise<{ median: number; items: HeaterPost[] }> {
+  const days = opts.days ?? 30;
+  const multiplier = opts.multiplier ?? 2;
+  const limit = Math.max(1, Math.min(50, opts.limit ?? 10));
+  const since = Date.now() - days * 24 * 3600 * 1000;
+
+  const { results } = await db.prepare(
+    `SELECT p.id AS postId, p.body, p.hook_id AS hookId,
+            GROUP_CONCAT(DISTINCT t.network) AS networks,
+            MIN(t.published_at) AS publishedAt,
+            SUM(COALESCE(pm.likes,0)+COALESCE(pm.comments,0)+COALESCE(pm.shares,0)+COALESCE(pm.saved,0)) AS eng,
+            SUM(COALESCE(pm.reach,0)) AS reach
+     FROM posts p
+     JOIN post_targets t ON t.post_id = p.id AND t.status = 'published'
+     LEFT JOIN post_metrics pm ON pm.id = (
+       SELECT id FROM post_metrics WHERE target_id = t.id ORDER BY snapshot_at DESC LIMIT 1
+     )
+     WHERE p.user_id = ? AND t.published_at >= ?
+     GROUP BY p.id`
+  ).bind(userId, since).all<{ postId: string; body: string; hookId: string | null; networks: string | null; publishedAt: number | null; eng: number | null; reach: number | null }>();
+
+  const rows = results ?? [];
+  const med = median(rows.map((r) => r.eng ?? 0));
+  const threshold = med * multiplier;
+
+  const items: HeaterPost[] = rows
+    .filter((r) => med > 0 && (r.eng ?? 0) >= threshold)
+    .map((r) => ({
+      postId: r.postId,
+      body: r.body,
+      hookId: r.hookId,
+      networks: r.networks ? r.networks.split(",") : [],
+      publishedAt: r.publishedAt,
+      engagement: r.eng ?? 0,
+      reach: r.reach ?? 0,
+      ratio: med > 0 ? (r.eng ?? 0) / med : 0,
+    }))
+    .sort((a, b) => b.engagement - a.engagement)
+    .slice(0, limit);
+
+  return { median: med, items };
 }
