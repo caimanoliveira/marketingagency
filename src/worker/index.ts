@@ -10,6 +10,7 @@ import { analytics } from "./routes/analytics";
 import { competitors } from "./routes/competitors";
 import { strategy } from "./routes/strategy";
 import { hooks } from "./routes/hooks";
+import { trends } from "./routes/trends";
 import type { PublishJob } from "../shared/types";
 
 export interface Env {
@@ -47,6 +48,7 @@ app.route("/api/analytics", analytics);
 app.route("/api/competitors", competitors);
 app.route("/api/strategy", strategy);
 app.route("/api/hooks", hooks);
+app.route("/api/trends", trends);
 
 app.all("/api/*", (c) => c.json({ error: "not_found" }, 404));
 
@@ -62,6 +64,9 @@ export default {
     } else if (cron === "0 3 * * *") {
       const { collectMetrics } = await import("./analytics/collect");
       ctx.waitUntil(collectMetrics(env).then((r) => console.log(`analytics: ${r.usersProcessed} users, ${r.errors.length} errors`)));
+    } else if (cron === "0 5 * * *") {
+      const { refreshTrends } = await import("./trends/refresh");
+      ctx.waitUntil(refreshTrends(env).then((r) => console.log(`trends: ${r.usersProcessed} users, ${r.errors.length} errors`)));
     } else {
       const { scanAndEnqueue } = await import("./scheduler/cron");
       ctx.waitUntil(scanAndEnqueue(env).then((n) => console.log(`cron enqueued ${n} jobs`)));

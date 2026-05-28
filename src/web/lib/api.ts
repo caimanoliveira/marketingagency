@@ -18,6 +18,9 @@ import type {
   AdjustToneResponse,
   Hook,
   HookType,
+  TrendItem,
+  TrendFeed,
+  HookPotential,
 } from "../../shared/types";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -246,4 +249,18 @@ export const api = {
   }) => json<Hook>("/api/hooks", "POST", body),
   deleteHook: (id: string) => json<{ ok: true }>(`/api/hooks/${id}`, "DELETE"),
   useHook: (id: string) => json<{ useCount: number }>(`/api/hooks/${id}/use`, "POST"),
+
+  // Trends
+  listTrends: (potential?: HookPotential) =>
+    req<{ items: TrendItem[] }>(`/api/trends${potential ? `?potential=${potential}` : ""}`),
+  refreshTrends: () =>
+    json<{ fetched: number; scored: number; items: TrendItem[] }>("/api/trends/refresh", "POST"),
+  dismissTrend: (id: string) => json<{ ok: true }>(`/api/trends/items/${id}`, "DELETE"),
+  listTrendFeeds: () =>
+    req<{ items: TrendFeed[]; defaults: Array<{ url: string; title: string }>; usingDefaults: boolean }>("/api/trends/feeds"),
+  addTrendFeed: (url: string, title?: string | null) =>
+    json<TrendFeed>("/api/trends/feeds", "POST", { url, title: title ?? null }),
+  setTrendFeedEnabled: (id: string, enabled: boolean) =>
+    json<{ ok: true }>(`/api/trends/feeds/${id}`, "PATCH", { enabled }),
+  removeTrendFeed: (id: string) => json<{ ok: true }>(`/api/trends/feeds/${id}`, "DELETE"),
 };

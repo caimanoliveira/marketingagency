@@ -271,6 +271,28 @@ export interface Hook {
   createdAt: number;
 }
 
+export type HookPotential = "high" | "medium" | "low";
+
+export interface TrendItem {
+  id: string;
+  title: string;
+  url: string;
+  source: string | null;
+  summary: string | null;
+  publishedAt: number | null;
+  hookPotential: HookPotential | null;
+  hookAngle: string | null;
+  fetchedAt: number;
+}
+
+export interface TrendFeed {
+  id: string;
+  url: string;
+  title: string | null;
+  enabled: boolean;
+  addedAt: number;
+}
+
 export interface WeeklySuggestion {
   id: string;
   weekStart: string;

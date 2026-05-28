@@ -62,3 +62,12 @@ export const CreateHookSchema = z.object({
   network: NetworkSchema.nullable().optional(),
   viewCount: z.number().int().nonnegative().nullable().optional(),
 });
+
+export const AddTrendFeedSchema = z.object({
+  url: z.string().url().max(500).refine((u) => u.startsWith("https://"), "must_be_https"),
+  title: z.string().max(120).nullable().optional(),
+});
+
+export const UpdateTrendFeedSchema = z.object({
+  enabled: z.boolean(),
+});

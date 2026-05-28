@@ -16,6 +16,7 @@ const NAV_ITEMS: Array<{ to: string; label: string; icon: string; section?: stri
   { to: "/kanban",     label: "Kanban",        icon: "🧭" },
   { to: "/media",      label: "Biblioteca",    icon: "🖼️" },
   { to: "/strategy",   label: "Estratégia",    icon: "🎯", section: "INTELIGÊNCIA" },
+  { to: "/trends",     label: "Tendências",    icon: "📡" },
   { to: "/analytics",  label: "Analytics",     icon: "📊" },
   { to: "/benchmarks", label: "Benchmarks",    icon: "🔭" },
   { to: "/settings",   label: "Configurações", icon: "⚙️", section: "CONTA" },
