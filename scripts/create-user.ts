@@ -49,7 +49,7 @@ if (!email || !password) {
 const remote = whereArg === "--remote";
 const hash = await hashPassword(password);
 const id = randomId();
-const sql = `INSERT INTO users (id, email, password_hash, created_at) VALUES ('${sqlEscape(id)}', '${sqlEscape(email.toLowerCase())}', '${sqlEscape(hash)}', ${Date.now()});\n`;
+const sql = `INSERT INTO users (id, email, password_hash, created_at) VALUES ('${sqlEscape(id)}', '${sqlEscape(email.toLowerCase())}', '${sqlEscape(hash)}', ${Date.now()}) ON CONFLICT(email) DO UPDATE SET password_hash=excluded.password_hash;\n`;
 
 const dir = mkdtempSync(path.join(tmpdir(), "sc-seed-"));
 const file = path.join(dir, "seed.sql");
