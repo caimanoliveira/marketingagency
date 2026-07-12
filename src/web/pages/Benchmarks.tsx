@@ -1,15 +1,17 @@
 import { useState, FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { EmptyState } from "../components/EmptyState";
 import { SkeletonRow } from "../components/Skeleton";
-import { Button, Input, Avatar, ConfirmDialog } from "../ui";
+import { Button, Input, Avatar, ConfirmDialog, Modal, Badge } from "../ui";
 import { toasts } from "../ui/toast";
 
 export function Benchmarks() {
   const qc = useQueryClient();
   const [username, setUsername] = useState("");
   const [confirmRemove, setConfirmRemove] = useState<{ id: string; username: string } | null>(null);
+  const [remodelFor, setRemodelFor] = useState<{ id: string; username: string } | null>(null);
 
   const { data, isLoading } = useQuery({ queryKey: ["competitors"], queryFn: api.listCompetitors });
 
@@ -74,9 +76,18 @@ export function Benchmarks() {
               displayName={c.displayName}
               profilePictureUrl={c.profilePictureUrl}
               onRemove={() => setConfirmRemove({ id: c.id, username: c.username })}
+              onRemodel={() => setRemodelFor({ id: c.id, username: c.username })}
             />
           ))}
         </div>
+      )}
+
+      {remodelFor && (
+        <TopPostsModal
+          id={remodelFor.id}
+          username={remodelFor.username}
+          onClose={() => setRemodelFor(null)}
+        />
       )}
 
       <ConfirmDialog
@@ -98,9 +109,10 @@ interface CardProps {
   displayName: string | null;
   profilePictureUrl: string | null;
   onRemove: () => void;
+  onRemodel: () => void;
 }
 
-function CompetitorCard({ rank, id, username, displayName, profilePictureUrl, onRemove }: CardProps) {
+function CompetitorCard({ rank, id, username, displayName, profilePictureUrl, onRemove, onRemodel }: CardProps) {
   const { data } = useQuery({ queryKey: ["comp-snaps", id], queryFn: () => api.competitorSnapshots(id, 30) });
   const snapshots = data?.items ?? [];
   const latest = snapshots[snapshots.length - 1];
@@ -175,6 +187,11 @@ function CompetitorCard({ rank, id, username, displayName, profilePictureUrl, on
         </div>
       </div>
 
+      {/* Remodel top posts */}
+      <Button variant="ghost" size="sm" onClick={onRemodel} title="Remodelar um post desta conta no Estúdio Viral">
+        ♻️ Remodelar
+      </Button>
+
       {/* Remove */}
       <button
         onClick={onRemove}
@@ -182,5 +199,54 @@ function CompetitorCard({ rank, id, username, displayName, profilePictureUrl, on
         aria-label="Remover"
       >×</button>
     </div>
+  );
+}
+
+function TopPostsModal({ id, username, onClose }: { id: string; username: string; onClose: () => void }) {
+  const nav = useNavigate();
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["comp-top-posts", id],
+    queryFn: () => api.competitorTopPosts(id),
+    retry: false,
+  });
+
+  function remodel(caption: string) {
+    nav("/viral", { state: { tool: "remodel", reference: caption } });
+  }
+
+  const notConnected = isError && (error as Error).message.startsWith("409");
+
+  return (
+    <Modal open onClose={onClose} title={`Top posts de @${username}`}>
+      {isLoading && <SkeletonRow count={3} />}
+      {notConnected && (
+        <p style={{ fontSize: 13 }}>
+          Conecte uma conta Instagram Business em Configurações para buscar os posts desta conta.
+        </p>
+      )}
+      {isError && !notConnected && (
+        <p style={{ fontSize: 13 }}>Não foi possível buscar os posts agora. Tente novamente mais tarde.</p>
+      )}
+      {!isLoading && !isError && (data?.items.length ?? 0) === 0 && (
+        <p style={{ fontSize: 13 }}>Nenhum post recente com legenda encontrado para esta conta.</p>
+      )}
+      {(data?.items ?? []).map((p, i) => (
+        <div key={i} style={{ padding: "12px 0", borderTop: i > 0 ? "1px solid var(--lume-border)" : "none" }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
+            <Badge>❤️ {p.likes.toLocaleString("pt-BR")}</Badge>
+            <Badge>💬 {p.comments.toLocaleString("pt-BR")}</Badge>
+            {p.permalink && (
+              <a href={p.permalink} target="_blank" rel="noreferrer" style={{ fontSize: 12 }}>ver no Instagram</a>
+            )}
+          </div>
+          <div style={{ fontSize: 13, whiteSpace: "pre-wrap", maxHeight: 96, overflow: "hidden" }}>
+            {p.caption.length > 300 ? `${p.caption.slice(0, 300)}…` : p.caption}
+          </div>
+          <div style={{ marginTop: 8 }}>
+            <Button size="sm" onClick={() => remodel(p.caption)}>♻️ Remodelar no Estúdio Viral</Button>
+          </div>
+        </div>
+      ))}
+    </Modal>
   );
 }

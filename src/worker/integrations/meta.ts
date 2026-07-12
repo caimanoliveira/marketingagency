@@ -290,3 +290,48 @@ export async function fetchCompetitorBasic(
     recentPostsSampled: sampled,
   };
 }
+
+export interface CompetitorRecentPost {
+  caption: string;
+  likes: number;
+  comments: number;
+  mediaType: string | null;
+  permalink: string | null;
+  timestamp: string | null;
+}
+
+/**
+ * Fetches a competitor's recent posts WITH captions via `business_discovery`,
+ * sorted by engagement (likes + comments) descending. Posts without a caption
+ * are dropped — they can't be remodeled. Returns null on API error / not found.
+ */
+export async function fetchCompetitorRecentPosts(
+  myIgUserId: string,
+  pageAccessToken: string,
+  targetUsername: string
+): Promise<CompetitorRecentPost[] | null> {
+  const fields = `business_discovery.username(${targetUsername}){media.limit(9){caption,like_count,comments_count,media_type,permalink,timestamp}}`;
+  const url = new URL(`${GRAPH_V20}/${myIgUserId}`);
+  url.searchParams.set("fields", fields);
+  url.searchParams.set("access_token", pageAccessToken);
+  const res = await fetch(url.toString());
+  if (!res.ok) return null;
+  const body = await res.json() as {
+    business_discovery?: {
+      media?: { data?: Array<{ caption?: string; like_count?: number; comments_count?: number; media_type?: string; permalink?: string; timestamp?: string }> };
+    };
+  };
+  const items = body.business_discovery?.media?.data;
+  if (!items) return null;
+  return items
+    .filter((m) => (m.caption ?? "").trim().length > 0)
+    .map((m) => ({
+      caption: m.caption!.trim(),
+      likes: m.like_count ?? 0,
+      comments: m.comments_count ?? 0,
+      mediaType: m.media_type ?? null,
+      permalink: m.permalink ?? null,
+      timestamp: m.timestamp ?? null,
+    }))
+    .sort((a, b) => (b.likes + b.comments) - (a.likes + a.comments));
+}

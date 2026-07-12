@@ -30,6 +30,7 @@ import type {
   ViralScoreRequest,
   ViralScoreResponse,
   ViralGenerationListItem,
+  CompetitorTopPost,
 } from "../../shared/types";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -187,6 +188,8 @@ export const api = {
     id: string; network: string; username: string; displayName: string | null; profilePictureUrl: string | null; addedAt: number; lastSnapshotAt: number | null;
   }>("/api/competitors", "POST", { username }),
   removeCompetitor: (id: string) => json<{ ok: true }>(`/api/competitors/${id}`, "DELETE"),
+  competitorTopPosts: (id: string) =>
+    req<{ items: CompetitorTopPost[] }>(`/api/competitors/${id}/top-posts`),
   competitorSnapshots: (id: string, days = 30) => req<{
     items: Array<{ date: string; followers: number | null; mediaCount: number | null; recentAvgLikes: number | null; recentAvgComments: number | null; recentPostsSampled: number | null }>;
   }>(`/api/competitors/${id}/snapshots?days=${days}`),

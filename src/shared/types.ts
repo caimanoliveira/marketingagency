@@ -307,6 +307,7 @@ export interface GenerateHooksRequest {
   niche: string;
   topic: string;
   network?: Network;
+  useMyVoice?: boolean;
 }
 export interface GenerateHooksResponse { hooks: ViralHookItem[]; }
 
@@ -321,6 +322,7 @@ export interface GenerateReelsScriptRequest {
   durationSec: 15 | 30 | 60 | 90;
   goal: ViralGoal;
   tone?: Tone;
+  useMyVoice?: boolean;
 }
 export interface GenerateReelsScriptResponse {
   title: string;
@@ -342,6 +344,7 @@ export interface GenerateCarouselRequest {
   slideCount: number;
   goal: ViralGoal;
   tone?: Tone;
+  useMyVoice?: boolean;
 }
 export interface GenerateCarouselResponse {
   coverTitle: string;
@@ -356,6 +359,7 @@ export interface RemodelViralRequest {
   niche: string;
   topic?: string;
   tone?: Tone;
+  useMyVoice?: boolean;
 }
 export interface RemodelViralResponse {
   whyItWorks: string;
@@ -390,4 +394,13 @@ export interface ViralGenerationListItem {
   input: unknown;
   output: unknown;
   createdAt: number;
+}
+
+export interface CompetitorTopPost {
+  caption: string;
+  likes: number;
+  comments: number;
+  mediaType: string | null;
+  permalink: string | null;
+  timestamp: string | null;
 }
