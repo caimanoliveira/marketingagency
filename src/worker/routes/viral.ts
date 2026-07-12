@@ -12,8 +12,9 @@ import {
   systemForCarousel, userForCarousel,
   systemForRemodel, userForRemodel,
   systemForScore, userForScore,
+  voiceBlock,
 } from "../ai/viral-prompts";
-import { logAiGeneration, insertViralGeneration, listViralGenerations, deleteViralGeneration } from "../db/queries";
+import { logAiGeneration, insertViralGeneration, listViralGenerations, deleteViralGeneration, topPosts } from "../db/queries";
 import { randomId } from "../utils/id";
 import type {
   GenerateHooksResponse, GenerateReelsScriptResponse, GenerateCarouselResponse,
@@ -48,6 +49,22 @@ async function persist(
   });
 }
 
+// With useMyVoice, the user's best-performing published posts are appended to
+// the prompt as style examples. Empty when nothing is published yet.
+async function maybeVoice(env: Env, userId: string, useMyVoice?: boolean): Promise<string> {
+  if (!useMyVoice) return "";
+  const posts = await topPosts(env.DB, userId, { limit: 5, by: "engagement_rate" });
+  const examples = posts
+    .map((p) => p.body.trim())
+    .filter((b) => b.length > 0)
+    .map((b) => (b.length > 400 ? `${b.slice(0, 400)}…` : b));
+  return voiceBlock(examples);
+}
+
+function withVoice(user: string, voice: string): string {
+  return voice ? `${user}\n\n${voice}` : user;
+}
+
 viral.post("/hooks", async (c) => {
   const userId = c.get("userId");
   let parsed;
@@ -55,9 +72,10 @@ viral.post("/hooks", async (c) => {
   catch { return c.json({ error: "invalid_request" }, 400); }
 
   try {
+    const voice = await maybeVoice(c.env, userId, parsed.useMyVoice);
     const result = await callClaudeJson<GenerateHooksResponse>(c.env.ANTHROPIC_API_KEY, {
       system: systemForHooks(),
-      user: userForHooks(parsed),
+      user: withVoice(userForHooks(parsed), voice),
       maxTokens: 3072,
     });
     if (!Array.isArray(result.data.hooks) || result.data.hooks.length === 0) {
@@ -78,9 +96,10 @@ viral.post("/reels-script", async (c) => {
   catch { return c.json({ error: "invalid_request" }, 400); }
 
   try {
+    const voice = await maybeVoice(c.env, userId, parsed.useMyVoice);
     const result = await callClaudeJson<GenerateReelsScriptResponse>(c.env.ANTHROPIC_API_KEY, {
       system: systemForReelsScript(),
-      user: userForReelsScript(parsed),
+      user: withVoice(userForReelsScript(parsed), voice),
       maxTokens: 3072,
     });
     if (typeof result.data.hook !== "string" || !Array.isArray(result.data.beats) || result.data.beats.length === 0) {
@@ -101,9 +120,10 @@ viral.post("/carousel", async (c) => {
   catch { return c.json({ error: "invalid_request" }, 400); }
 
   try {
+    const voice = await maybeVoice(c.env, userId, parsed.useMyVoice);
     const result = await callClaudeJson<GenerateCarouselResponse>(c.env.ANTHROPIC_API_KEY, {
       system: systemForCarousel(),
-      user: userForCarousel(parsed),
+      user: withVoice(userForCarousel(parsed), voice),
       maxTokens: 4096,
     });
     if (typeof result.data.coverTitle !== "string" || !Array.isArray(result.data.slides) || result.data.slides.length === 0) {
@@ -124,9 +144,10 @@ viral.post("/remodel", async (c) => {
   catch { return c.json({ error: "invalid_request" }, 400); }
 
   try {
+    const voice = await maybeVoice(c.env, userId, parsed.useMyVoice);
     const result = await callClaudeJson<RemodelViralResponse>(c.env.ANTHROPIC_API_KEY, {
       system: systemForRemodel(),
-      user: userForRemodel(parsed),
+      user: withVoice(userForRemodel(parsed), voice),
       maxTokens: 4096,
     });
     if (typeof result.data.hook !== "string" || typeof result.data.body !== "string" || result.data.body.length === 0) {

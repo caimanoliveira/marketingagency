@@ -147,3 +147,13 @@ export function userForScore(args: { content: string; network?: Network }): stri
   parts.push("Avalia e pontua.");
   return parts.join("\n\n");
 }
+
+// ── Minha voz ──
+
+export function voiceBlock(examples: string[]): string {
+  if (examples.length === 0) return "";
+  return [
+    "MINHA VOZ — estes são posts meus com melhor desempenho. Imita o estilo, vocabulário, ritmo e tom deles (não o conteúdo):",
+    ...examples.map((e, i) => `Exemplo ${i + 1}:\n${e}`),
+  ].join("\n\n");
+}

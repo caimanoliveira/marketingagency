@@ -18,6 +18,9 @@ const SCHEMA_STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, created_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS ai_generations (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, kind TEXT NOT NULL, input_json TEXT NOT NULL, output_json TEXT NOT NULL, input_tokens INTEGER, output_tokens INTEGER, cached_tokens INTEGER, cost_cents INTEGER, model TEXT NOT NULL, duration_ms INTEGER NOT NULL, created_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS viral_generations (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, kind TEXT NOT NULL, niche TEXT NOT NULL, input_json TEXT NOT NULL, output_json TEXT NOT NULL, created_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS posts (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', media_id TEXT, status TEXT NOT NULL DEFAULT 'draft', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS post_targets (id TEXT PRIMARY KEY, post_id TEXT NOT NULL, network TEXT NOT NULL, body_override TEXT, scheduled_at INTEGER, published_at INTEGER, external_id TEXT, status TEXT NOT NULL DEFAULT 'pending', target_ref TEXT, last_error TEXT, attempts INTEGER NOT NULL DEFAULT 0, UNIQUE(post_id, network))`,
+  `CREATE TABLE IF NOT EXISTS post_metrics (id TEXT PRIMARY KEY, post_id TEXT NOT NULL, target_id TEXT NOT NULL, network TEXT NOT NULL, snapshot_at INTEGER NOT NULL, likes INTEGER, comments INTEGER, shares INTEGER, saved INTEGER, reach INTEGER, impressions INTEGER, engagement_rate REAL, extra_json TEXT, created_at INTEGER NOT NULL)`,
 ];
 
 const USAGE = { inputTokens: 100, outputTokens: 50, cachedTokens: 0 };
@@ -46,6 +49,9 @@ beforeEach(async () => {
   callClaudeJson.mockReset();
   await env.DB.prepare("DELETE FROM viral_generations WHERE user_id = ?").bind(TEST_USER).run();
   await env.DB.prepare("DELETE FROM ai_generations WHERE user_id = ?").bind(TEST_USER).run();
+  await env.DB.prepare("DELETE FROM post_metrics WHERE post_id LIKE 'p_vv_%'").run();
+  await env.DB.prepare("DELETE FROM post_targets WHERE post_id LIKE 'p_vv_%'").run();
+  await env.DB.prepare("DELETE FROM posts WHERE id LIKE 'p_vv_%'").run();
 });
 
 describe("POST /api/viral/hooks", () => {
@@ -250,5 +256,40 @@ describe("GET/DELETE /api/viral/generations", () => {
   it("404 deleting another id", async () => {
     const res = await authedCall("/api/viral/generations/nope", { method: "DELETE" });
     expect(res.status).toBe(404);
+  });
+});
+
+describe("useMyVoice", () => {
+  it("appends top-post style examples to the prompt", async () => {
+    const now = Date.now();
+    await env.DB.prepare("INSERT INTO posts (id, user_id, body, status, created_at, updated_at) VALUES (?, ?, ?, 'published', ?, ?)")
+      .bind("p_vv_1", TEST_USER, "meu post campeão de engajamento", now, now).run();
+    await env.DB.prepare("INSERT INTO post_targets (id, post_id, network, status, published_at) VALUES (?, ?, 'instagram', 'published', ?)")
+      .bind("t_vv_1", "p_vv_1", now).run();
+    await env.DB.prepare("INSERT INTO post_metrics (id, post_id, target_id, network, snapshot_at, likes, comments, engagement_rate, created_at) VALUES (?, ?, ?, 'instagram', ?, 100, 10, 8.5, ?)")
+      .bind("m_vv_1", "p_vv_1", "t_vv_1", now, now).run();
+
+    const hooks = Array.from({ length: 10 }, () => ({ text: "g", category: "c", why: "w" }));
+    callClaudeJson.mockResolvedValueOnce({ data: { hooks }, usage: USAGE, durationMs: 100 });
+    const res = await authedCall("/api/viral/hooks", {
+      method: "POST",
+      body: JSON.stringify({ niche: "fitness", topic: "treino", useMyVoice: true }),
+    });
+    expect(res.status).toBe(200);
+    const call = callClaudeJson.mock.calls[0][1] as { user: string };
+    expect(call.user).toContain("MINHA VOZ");
+    expect(call.user).toContain("meu post campeão de engajamento");
+  });
+
+  it("omits voice block when user has no published posts", async () => {
+    const hooks = Array.from({ length: 10 }, () => ({ text: "g", category: "c", why: "w" }));
+    callClaudeJson.mockResolvedValueOnce({ data: { hooks }, usage: USAGE, durationMs: 100 });
+    const res = await authedCall("/api/viral/hooks", {
+      method: "POST",
+      body: JSON.stringify({ niche: "fitness", topic: "treino", useMyVoice: true }),
+    });
+    expect(res.status).toBe(200);
+    const call = callClaudeJson.mock.calls[0][1] as { user: string };
+    expect(call.user).not.toContain("MINHA VOZ");
   });
 });

@@ -58,6 +58,7 @@ export const GenerateHooksSchema = z.object({
   niche: z.string().min(2).max(200),
   topic: z.string().min(2).max(500),
   network: NetworkSchema.optional(),
+  useMyVoice: z.boolean().optional(),
 });
 
 export const GenerateReelsScriptSchema = z.object({
@@ -66,6 +67,7 @@ export const GenerateReelsScriptSchema = z.object({
   durationSec: z.union([z.literal(15), z.literal(30), z.literal(60), z.literal(90)]),
   goal: ViralGoalSchema,
   tone: ToneSchema.optional(),
+  useMyVoice: z.boolean().optional(),
 });
 
 export const GenerateCarouselSchema = z.object({
@@ -74,6 +76,7 @@ export const GenerateCarouselSchema = z.object({
   slideCount: z.number().int().min(5).max(10),
   goal: ViralGoalSchema,
   tone: ToneSchema.optional(),
+  useMyVoice: z.boolean().optional(),
 });
 
 export const RemodelViralSchema = z.object({
@@ -81,6 +84,7 @@ export const RemodelViralSchema = z.object({
   niche: z.string().min(2).max(200),
   topic: z.string().max(500).optional(),
   tone: ToneSchema.optional(),
+  useMyVoice: z.boolean().optional(),
 });
 
 export const ViralScoreSchema = z.object({

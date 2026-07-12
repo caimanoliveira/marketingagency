@@ -1,5 +1,5 @@
 import { useState, FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { Button, Input, Textarea, Select, Card, Badge } from "../ui";
@@ -47,8 +47,10 @@ function ResultBlock({ title, text }: { title: string; text: string }) {
 
 export function ViralStudio() {
   const nav = useNavigate();
+  const location = useLocation();
   const qc = useQueryClient();
-  const [tool, setTool] = useState<ViralKind>("hooks");
+  const prefill = (location.state ?? null) as { tool?: ViralKind; reference?: string } | null;
+  const [tool, setTool] = useState<ViralKind>(prefill?.tool ?? "hooks");
 
   // shared inputs
   const [niche, setNiche] = useState("");
@@ -58,7 +60,8 @@ export function ViralStudio() {
   const [goal, setGoal] = useState<ViralGoal>("seguidores");
   const [durationSec, setDurationSec] = useState<15 | 30 | 60 | 90>(30);
   const [slideCount, setSlideCount] = useState(7);
-  const [reference, setReference] = useState("");
+  const [reference, setReference] = useState(prefill?.reference ?? "");
+  const [useMyVoice, setUseMyVoice] = useState(false);
   const [content, setContent] = useState("");
 
   const [hooksRes, setHooksRes] = useState<GenerateHooksResponse | null>(null);
@@ -94,10 +97,10 @@ export function ViralStudio() {
   function onSubmit(e: FormEvent) {
     e.preventDefault();
     const base = { niche: niche.trim(), topic: topic.trim() };
-    if (tool === "hooks") hooksMut.mutate({ ...base, network: network || undefined });
-    else if (tool === "reels_script") reelsMut.mutate({ ...base, durationSec, goal, tone: tone || undefined });
-    else if (tool === "carousel") carouselMut.mutate({ ...base, slideCount, goal, tone: tone || undefined });
-    else if (tool === "remodel") remodelMut.mutate({ reference: reference.trim(), niche: base.niche, topic: base.topic || undefined, tone: tone || undefined });
+    if (tool === "hooks") hooksMut.mutate({ ...base, network: network || undefined, useMyVoice });
+    else if (tool === "reels_script") reelsMut.mutate({ ...base, durationSec, goal, tone: tone || undefined, useMyVoice });
+    else if (tool === "carousel") carouselMut.mutate({ ...base, slideCount, goal, tone: tone || undefined, useMyVoice });
+    else if (tool === "remodel") remodelMut.mutate({ reference: reference.trim(), niche: base.niche, topic: base.topic || undefined, tone: tone || undefined, useMyVoice });
     else scoreMut.mutate({ content: content.trim(), network: network || undefined });
   }
 
@@ -244,6 +247,13 @@ export function ViralStudio() {
               </Select>
             )}
           </div>
+
+          {tool !== "score" && (
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
+              <input type="checkbox" checked={useMyVoice} onChange={(e) => setUseMyVoice(e.target.checked)} />
+              🎙️ Usar minha voz — imitar o estilo dos meus posts com melhor desempenho
+            </label>
+          )}
 
           <div>
             <Button type="submit" disabled={!canSubmit} loading={pending}>

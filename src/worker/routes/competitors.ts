@@ -11,7 +11,7 @@ import {
   listCompetitorSnapshots,
   getMetaConnection,
 } from "../db/queries";
-import { fetchCompetitorBasic } from "../integrations/meta";
+import { fetchCompetitorBasic, fetchCompetitorRecentPosts } from "../integrations/meta";
 import { randomId } from "../utils/id";
 
 export const competitors = new Hono<{ Bindings: Env; Variables: { userId: string } }>();
@@ -123,4 +123,23 @@ competitors.get("/:id/snapshots", async (c) => {
   const days = Math.max(1, Math.min(365, parseInt(daysStr, 10) || 30));
   const items = await listCompetitorSnapshots(c.env.DB, id, days);
   return c.json({ items });
+});
+
+competitors.get("/:id/top-posts", async (c) => {
+  const userId = c.get("userId");
+  const id = c.req.param("id");
+  const comp = await getCompetitor(c.env.DB, userId, id);
+  if (!comp) return c.json({ error: "not_found" }, 404);
+
+  const metaConn = await getMetaConnection(c.env.DB, userId);
+  if (!metaConn) return c.json({ error: "instagram_not_connected" }, 409);
+  const { results: igAccounts } = await c.env.DB.prepare(
+    "SELECT ig_user_id, fb_page_access_token FROM instagram_accounts WHERE connection_id = ? LIMIT 1"
+  ).bind(metaConn.id).all<{ ig_user_id: string; fb_page_access_token: string }>();
+  const first = igAccounts?.[0];
+  if (!first) return c.json({ error: "instagram_not_connected" }, 409);
+
+  const posts = await fetchCompetitorRecentPosts(first.ig_user_id, first.fb_page_access_token, comp.username);
+  if (posts === null) return c.json({ error: "upstream_failed" }, 502);
+  return c.json({ items: posts });
 });
