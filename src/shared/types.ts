@@ -292,3 +292,102 @@ export interface CreateReportRequest {
   title?: string;
   periodDays: 7 | 30 | 90;
 }
+
+// ── Viral Studio ─────────────────────────────────────────────────────────────
+
+export type ViralGoal = "seguidores" | "vendas" | "autoridade" | "engajamento";
+export type ViralKind = "hooks" | "reels_script" | "carousel" | "remodel" | "score";
+
+export interface ViralHookItem {
+  text: string;
+  category: string;
+  why: string;
+}
+export interface GenerateHooksRequest {
+  niche: string;
+  topic: string;
+  network?: Network;
+}
+export interface GenerateHooksResponse { hooks: ViralHookItem[]; }
+
+export interface ReelsScriptBeat {
+  time: string;
+  narration: string;
+  visual: string;
+}
+export interface GenerateReelsScriptRequest {
+  niche: string;
+  topic: string;
+  durationSec: 15 | 30 | 60 | 90;
+  goal: ViralGoal;
+  tone?: Tone;
+}
+export interface GenerateReelsScriptResponse {
+  title: string;
+  hook: string;
+  altHooks: string[];
+  beats: ReelsScriptBeat[];
+  cta: string;
+  caption: string;
+  hashtags: string[];
+}
+
+export interface CarouselSlide {
+  title: string;
+  text: string;
+}
+export interface GenerateCarouselRequest {
+  niche: string;
+  topic: string;
+  slideCount: number;
+  goal: ViralGoal;
+  tone?: Tone;
+}
+export interface GenerateCarouselResponse {
+  coverTitle: string;
+  coverSubtitle: string;
+  slides: CarouselSlide[];
+  caption: string;
+  hashtags: string[];
+}
+
+export interface RemodelViralRequest {
+  reference: string;
+  niche: string;
+  topic?: string;
+  tone?: Tone;
+}
+export interface RemodelViralResponse {
+  whyItWorks: string;
+  structure: string;
+  hook: string;
+  body: string;
+  caption: string;
+  hashtags: string[];
+}
+
+export interface ViralScoreCriterion {
+  criterion: string;
+  score: number;
+  feedback: string;
+}
+export interface ViralScoreRequest {
+  content: string;
+  network?: Network;
+}
+export interface ViralScoreResponse {
+  score: number;
+  verdict: string;
+  breakdown: ViralScoreCriterion[];
+  improvements: string[];
+  improvedHook: string;
+}
+
+export interface ViralGenerationListItem {
+  id: string;
+  kind: ViralKind;
+  niche: string;
+  input: unknown;
+  output: unknown;
+  createdAt: number;
+}

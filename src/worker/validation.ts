@@ -51,3 +51,39 @@ export const AdjustToneSchema = z.object({
   body: z.string().min(1).max(5000),
   tone: ToneSchema,
 });
+
+export const ViralGoalSchema = z.enum(["seguidores", "vendas", "autoridade", "engajamento"]);
+
+export const GenerateHooksSchema = z.object({
+  niche: z.string().min(2).max(200),
+  topic: z.string().min(2).max(500),
+  network: NetworkSchema.optional(),
+});
+
+export const GenerateReelsScriptSchema = z.object({
+  niche: z.string().min(2).max(200),
+  topic: z.string().min(2).max(500),
+  durationSec: z.union([z.literal(15), z.literal(30), z.literal(60), z.literal(90)]),
+  goal: ViralGoalSchema,
+  tone: ToneSchema.optional(),
+});
+
+export const GenerateCarouselSchema = z.object({
+  niche: z.string().min(2).max(200),
+  topic: z.string().min(2).max(500),
+  slideCount: z.number().int().min(5).max(10),
+  goal: ViralGoalSchema,
+  tone: ToneSchema.optional(),
+});
+
+export const RemodelViralSchema = z.object({
+  reference: z.string().min(20).max(8000),
+  niche: z.string().min(2).max(200),
+  topic: z.string().max(500).optional(),
+  tone: ToneSchema.optional(),
+});
+
+export const ViralScoreSchema = z.object({
+  content: z.string().min(20).max(8000),
+  network: NetworkSchema.optional(),
+});

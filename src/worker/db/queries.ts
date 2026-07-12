@@ -1135,3 +1135,40 @@ export async function deleteReport(db: D1Database, userId: string, id: string): 
   const res = await db.prepare("DELETE FROM reports WHERE id = ? AND user_id = ?").bind(id, userId).run();
   return res.meta.changes > 0;
 }
+
+export async function insertViralGeneration(
+  db: D1Database,
+  params: { id: string; userId: string; kind: string; niche: string; input: unknown; output: unknown }
+): Promise<void> {
+  await db
+    .prepare("INSERT INTO viral_generations (id, user_id, kind, niche, input_json, output_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+    .bind(params.id, params.userId, params.kind, params.niche, JSON.stringify(params.input), JSON.stringify(params.output), Date.now())
+    .run();
+}
+
+export async function listViralGenerations(
+  db: D1Database,
+  userId: string,
+  limit = 20
+): Promise<Array<{ id: string; kind: string; niche: string; input: unknown; output: unknown; createdAt: number }>> {
+  const { results } = await db
+    .prepare("SELECT id, kind, niche, input_json, output_json, created_at FROM viral_generations WHERE user_id = ? ORDER BY created_at DESC LIMIT ?")
+    .bind(userId, limit)
+    .all<{ id: string; kind: string; niche: string; input_json: string; output_json: string; created_at: number }>();
+  return (results ?? []).map((r) => ({
+    id: r.id,
+    kind: r.kind,
+    niche: r.niche,
+    input: JSON.parse(r.input_json),
+    output: JSON.parse(r.output_json),
+    createdAt: r.created_at,
+  }));
+}
+
+export async function deleteViralGeneration(db: D1Database, userId: string, id: string): Promise<boolean> {
+  const res = await db
+    .prepare("DELETE FROM viral_generations WHERE id = ? AND user_id = ?")
+    .bind(id, userId)
+    .run();
+  return (res.meta.changes ?? 0) > 0;
+}
