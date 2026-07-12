@@ -14,6 +14,7 @@ const NAV_ITEMS: Array<{ to: string; label: string; icon: string; section?: stri
   { to: "/calendar",   label: "Calendário",    icon: "🗓️" },
   { to: "/kanban",     label: "Kanban",        icon: "🧭" },
   { to: "/media",      label: "Biblioteca",    icon: "🖼️" },
+  { to: "/viral",      label: "Estúdio Viral", icon: "🚀" },
   { to: "/strategy",   label: "Estratégia",    icon: "🎯", section: "INTELIGÊNCIA" },
   { to: "/analytics",  label: "Analytics",     icon: "📊" },
   { to: "/benchmarks", label: "Benchmarks",    icon: "🔭" },

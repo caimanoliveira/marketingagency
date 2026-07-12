@@ -19,6 +19,17 @@ import type {
   Report,
   CreateReportRequest,
   ReportSnapshot,
+  GenerateHooksRequest,
+  GenerateHooksResponse,
+  GenerateReelsScriptRequest,
+  GenerateReelsScriptResponse,
+  GenerateCarouselRequest,
+  GenerateCarouselResponse,
+  RemodelViralRequest,
+  RemodelViralResponse,
+  ViralScoreRequest,
+  ViralScoreResponse,
+  ViralGenerationListItem,
 } from "../../shared/types";
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -227,6 +238,20 @@ export const api = {
     }>(`/api/strategy/weekly-suggestions/${id}`),
   approveWeeklySuggestion: (id: string, acceptIndices?: number[]) =>
     json<{ createdPostIds: string[] }>(`/api/strategy/weekly-suggestions/${id}/approve`, "POST", acceptIndices ? { acceptIndices } : {}),
+
+  // Viral Studio
+  viralHooks: (body: GenerateHooksRequest) =>
+    json<GenerateHooksResponse>("/api/viral/hooks", "POST", body),
+  viralReelsScript: (body: GenerateReelsScriptRequest) =>
+    json<GenerateReelsScriptResponse>("/api/viral/reels-script", "POST", body),
+  viralCarousel: (body: GenerateCarouselRequest) =>
+    json<GenerateCarouselResponse>("/api/viral/carousel", "POST", body),
+  viralRemodel: (body: RemodelViralRequest) =>
+    json<RemodelViralResponse>("/api/viral/remodel", "POST", body),
+  viralScore: (body: ViralScoreRequest) =>
+    json<ViralScoreResponse>("/api/viral/score", "POST", body),
+  viralGenerations: () => req<{ items: ViralGenerationListItem[] }>("/api/viral/generations"),
+  deleteViralGeneration: (id: string) => json<{ ok: true }>(`/api/viral/generations/${id}`, "DELETE"),
 
   listReports: () => req<{ reports: Report[] }>("/api/reports"),
   createReport: (body: CreateReportRequest) =>
